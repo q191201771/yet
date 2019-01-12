@@ -6,9 +6,9 @@
 
 #pragma once
 
-#include <cinttypes>
 #include <string>
-#include <asio.hpp>
+#include <yet_fwd.hpp>
+
 
 namespace yet {
 
@@ -20,7 +20,7 @@ class RTMPServer {
 
   private:
     void do_accept();
-    void accept_cb(asio::error_code ec, asio::ip::tcp::socket socket);
+    void accept_cb(ErrorCode ec, asio::ip::tcp::socket socket);
 
   private:
     RTMPServer(const RTMPServer &) = delete;

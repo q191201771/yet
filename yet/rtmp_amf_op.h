@@ -6,7 +6,7 @@
 
 #pragma once
 
-#include <stdint.h>
+#include <inttypes.h>
 #include <assert.h>
 #include <map>
 #include <string>
@@ -82,7 +82,7 @@ namespace yet {
   class AmfObjectItemString: public AmfObjectItem {
     public:
       AmfObjectItemString(const std::string &v) : AmfObjectItem(Amf0ObjectValueType_STRING), v_(v) {}
-      AmfObjectItemString(char *data, int len) : AmfObjectItem(Amf0ObjectValueType_STRING), v_(data, len) {}
+      AmfObjectItemString(const char *data, int len) : AmfObjectItem(Amf0ObjectValueType_STRING), v_(data, len) {}
       virtual std::string get_string() { return v_; }
       virtual void set_string(const std::string &v) { v_ = v; }
       virtual std::string stringify() { std::ostringstream oss; oss << v_; return oss.str(); }
@@ -99,7 +99,7 @@ namespace yet {
       bool put(const std::string &name, bool v);
       bool put(const std::string &name, double v);
       bool put(const std::string &name, const std::string &v);
-      bool put(const std::string &name, char *v, int len);
+      bool put(const std::string &name, const char *v, int len);
 
       // 存在则返回，不存在返回NULL
       AmfObjectItem *get(const std::string &name);
@@ -152,32 +152,32 @@ namespace yet {
        *
        */
 
-      static char *encode_int16(char *out, int16_t val);
-      static char *encode_int24(char *out, int32_t val);
-      static char *encode_int32(char *out, int32_t val);
-      static char *encode_int32_le(char *out, int32_t val);
-      static char *encode_number(char *out, double val);
-      static char *encode_boolean(char *out, bool val);
-      static char *encode_null(char *out);
-      static char *encode_string(char *out, const char *val, int val_len);
+      static uint8_t *encode_int16(uint8_t *out, int16_t val);
+      static uint8_t *encode_int24(uint8_t *out, int32_t val);
+      static uint8_t *encode_int32(uint8_t *out, int32_t val);
+      static uint8_t *encode_int32_le(uint8_t *out, int32_t val);
+      static uint8_t *encode_number(uint8_t *out, double val);
+      static uint8_t *encode_boolean(uint8_t *out, bool val);
+      static uint8_t *encode_null(uint8_t *out);
+      static uint8_t *encode_string(uint8_t *out, const char *val, int val_len);
 
-      static char *encode_object_begin(char *out);
-      static char *encode_object_named_boolean(char *out, const char *name, int name_len, bool val);
-      static char *encode_object_named_number(char *out, const char *name, int name_len, double val);
-      static char *encode_object_named_string(char *out, const char *name, int name_len, const char *val, int val_len);
-      static char *encode_object_end(char *out);
+      static uint8_t *encode_object_begin(uint8_t *out);
+      static uint8_t *encode_object_named_boolean(uint8_t *out, const char *name, int name_len, bool val);
+      static uint8_t *encode_object_named_number(uint8_t *out, const char *name, int name_len, double val);
+      static uint8_t *encode_object_named_string(uint8_t *out, const char *name, int name_len, const char *val, int val_len);
+      static uint8_t *encode_object_end(uint8_t *out);
 
-      static char *encode_ecma_array_begin(char *out, int array_len);
-      static char *encode_ecma_array_named_boolean(char *out, const char *name, int name_len, double val) {
+      static uint8_t *encode_ecma_array_begin(uint8_t *out, int array_len);
+      static uint8_t *encode_ecma_array_named_boolean(uint8_t *out, const char *name, int name_len, double val) {
         return encode_object_named_boolean(out, name, name_len, val);
       }
-      static char *encode_ecma_array_named_number(char *out, const char *name, int name_len, double val) {
+      static uint8_t *encode_ecma_array_named_number(uint8_t *out, const char *name, int name_len, double val) {
         return encode_object_named_number(out, name, name_len, val);
       }
-      static char *encode_ecma_array_named_string(char *out, const char *name, int name_len, const char *val, int val_len) {
+      static uint8_t *encode_ecma_array_named_string(uint8_t *out, const char *name, int name_len, const char *val, int val_len) {
         return encode_object_named_string(out, name, name_len, val, val_len);
       }
-      static char *encode_ecma_array_end(char *out);
+      static uint8_t *encode_ecma_array_end(uint8_t *out);
 
     public:
       /**
@@ -190,19 +190,24 @@ namespace yet {
        *
        */
 
-      static char *decode_boolean_with_type(const char *in, int valid_len, bool *out, int *used_len);
-      static char *decode_number_with_type(const char *in, int valid_len, double *out, int *used_len);
-      static char *decode_int16(const char *in, int valid_len, int32_t *out, int *used_len);
-      static char *decode_int24(const char *in, int valid_len, int32_t *out, int *used_len);
-      static char *decode_int32(const char *in, int valid_len, int32_t *out, int *used_len);
-      static char *decode_int32_le(const char *in, int valid_len, int32_t *out, int *used_len);
+      static uint8_t *decode_boolean_with_type(const uint8_t *in, int valid_len, bool *out, int *used_len);
+      static uint8_t *decode_number_with_type(const uint8_t *in, int valid_len, double *out, int *used_len);
+      static uint8_t *decode_int16(const uint8_t *in, int valid_len, int32_t *out, int *used_len);
+      static uint8_t *decode_int24(const uint8_t *in, int valid_len, int32_t *out, int *used_len);
+      static uint8_t *decode_int32(const uint8_t *in, int valid_len, int32_t *out, int *used_len);
+      static uint8_t *decode_int32_le(const uint8_t *in, int valid_len, int32_t *out, int *used_len);
 
 
       // @NOTICE <out>指向<in>中某个位置，没有拷贝生成新内存
-      static char *decode_string(const char *in, int valid_len, char **out, int *str_len, int *used_len);
-      static char *decode_string_with_type(const char *in, int valid_len, char **out, int *str_len, int *used_len);
+      static uint8_t *decode_string(const uint8_t *in, int valid_len, char **out, int *str_len, int *used_len);
+      static uint8_t *decode_string_with_type(const uint8_t *in, int valid_len, char **out, int *str_len, int *used_len);
 
-      static char *decode_object(const char *in, int valid_len, AmfObjectItemMap *objs, int *used_len);
+      static uint8_t *decode_object(const uint8_t *in, int valid_len, AmfObjectItemMap *objs, int *used_len);
+
+    private:
+      AmfOp() = delete;
+      AmfOp(const AmfOp &) = delete;
+      const AmfOp &operator=(const AmfOp &) = delete;
 
   }; // class AmfOp
 

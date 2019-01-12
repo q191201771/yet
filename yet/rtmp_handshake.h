@@ -6,18 +6,40 @@
 
 #pragma once
 
-#include "yet_inner.hpp"
+#include "yet_fwd.hpp"
 
 namespace yet {
 
-class RTMPHandshake {
+class RtmpHandshake {
   public:
-    char *create_s0s1();
-    char *create_s2();
+    bool handle_c0c1(const uint8_t *c0c1, std::size_t len);
+    uint8_t *create_s0s1();
+    uint8_t *create_s2();
+
+    //uint8_t *create_s0s1s2();
+    bool handle_c2(const uint8_t *, std::size_t) { return true; }
 
   private:
-    char s0s1[S0S1_LEN];
-    char s2[S2_LEN];
+    bool rtmp_handshake_parse_challenge(const uint8_t *buf, std::size_t buf_len,
+                                        const uint8_t *peer_key, std::size_t peer_key_len,
+                                        const uint8_t *key, std::size_t key_len);
+
+    bool rtmp_handshake_create_challenge(uint8_t *buf, std::size_t buf_len, const uint8_t *version,
+                                         const uint8_t *key, std::size_t key_len);
+
+  public:
+    RtmpHandshake() {}
+
+  private:
+    RtmpHandshake(const RtmpHandshake &) = delete;
+    const RtmpHandshake &operator=(const RtmpHandshake &) = delete;
+
+  private:
+    uint8_t s0s1_[S0S1_LEN];
+    uint8_t s2_[S2_LEN];
+    int timestamp_recvd_c1_;
+    int timestamp_sent_s1_;
+    bool is_old_;
 };
 
 }

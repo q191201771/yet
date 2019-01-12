@@ -1,11 +1,12 @@
 /**
- * @file   rtmp_server.h
+ * @file   yet_inner.hpp
  * @author pengrl
  *
  */
 
 #pragma once
 
+#include "yet_fwd.hpp"
 #include <spdlog/spdlog.h>
 #include <spdlog/sinks/stdout_color_sinks.h>
 
@@ -13,15 +14,14 @@ namespace yet {
 
 extern std::shared_ptr<spdlog::logger> console;
 
+#define YET_LOG_DEBUG(...)  if (yet::console->should_log(spdlog::level::debug)) { yet::console->debug("{} - {}()#{}", fmt::format(__VA_ARGS__), __FUNCTION__, __LINE__); }
 #define YET_LOG_INFO(...)  if (yet::console->should_log(spdlog::level::info)) { yet::console->info("{} - {}()#{}", fmt::format(__VA_ARGS__), __FUNCTION__, __LINE__); }
+#define YET_LOG_WARN(...) if (yet::console->should_log(spdlog::level::warn)) { yet::console->warn("{} - {}()#{}", fmt::format(__VA_ARGS__), __FUNCTION__, __LINE__); }
 #define YET_LOG_ERROR(...) if (yet::console->should_log(spdlog::level::err)) { yet::console->error("{} - {}()#{}", fmt::format(__VA_ARGS__), __FUNCTION__, __LINE__); }
-
-// TODO
-// assert CHEFFUCKME
+#define YET_LOG_ASSERT(cond, ...) if (!(cond) && yet::console->should_log(spdlog::level::err)) { yet::console->error("CHEFASSERTME {} - {}()#{}", fmt::format(__VA_ARGS__), __FUNCTION__, __LINE__); }
 
 using std::placeholders::_1;
 using std::placeholders::_2;
-
 
 
 static constexpr std::size_t EACH_READ_LEN = 4096;
@@ -33,11 +33,6 @@ static constexpr std::size_t PEER_BANDWIDTH = 5000000;
 static constexpr std::size_t LOCAL_CHUNK_SIZE = 4096;
 
 
-
-static constexpr std::size_t C0C1_LEN = 1537;
-static constexpr std::size_t S0S1_LEN = 1537;
-static constexpr std::size_t C2_LEN   = 1536;
-static constexpr std::size_t S2_LEN   = 1536;
 
 static constexpr char RTMP_VERSION = '\x03';
 
@@ -67,17 +62,12 @@ static constexpr std::size_t MSG_TYPE_ID_COMMAND_MESSAGE_AMF0 = 0x14;
 static constexpr std::size_t TRANSACTION_ID_CONNECT        = 1;
 static constexpr std::size_t TRANSACTION_ID_RELEASE_STREAM = 2;
 static constexpr std::size_t TRANSACTION_ID_FC_PUBLISH     = 3;
-static constexpr std::size_t TRANSACTION_ID_CREATE_STREAM  = 4;
+static constexpr std::size_t TRANSACTION_ID_CREATE_STREAM  = 4; // send not recv
 static constexpr std::size_t TRANSACTION_ID_PUBLISH        = 5;
 
 static constexpr std::size_t PEER_BANDWITH_LIMIT_TYPE_HARD    = 0;
 static constexpr std::size_t PEER_BANDWITH_LIMIT_TYPE_SOFT    = 1;
 static constexpr std::size_t PEER_BANDWITH_LIMIT_TYPE_DYNAMIC = 2;
-
-
-static bool is_protocol_control_message(int msg_type_id) {
-  return msg_type_id == 1 || msg_type_id == 2 || msg_type_id == 3 || msg_type_id == 5 || msg_type_id == 6;
-}
 
 } // namespace yet
 

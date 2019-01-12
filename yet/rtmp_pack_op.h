@@ -1,13 +1,12 @@
 /**
- * @file   rtmp_pack.h
+ * @file   rtmp_pack_op.h
  * @author pengrl
  *
  */
 
 #pragma once
 
-#include <stdint.h>
-
+#include <inttypes.h>
 
 namespace yet {
 
@@ -16,7 +15,7 @@ namespace yet {
   static constexpr int USER_CONTROL_EVENT_TYPE_PING_REQUEST = 6;
   static constexpr int USER_CONTROL_EVENT_TYPE_PING_RESPONSE = 7;
 
-  class RtmpPack {
+  class RtmpPackOp {
     public:
       static constexpr int ENCODE_RTMP_MSG_WIN_ACK_SIZE_RESERVE         = 16;  // 12 + 4
       static constexpr int ENCODE_RTMP_MSG_CHUNK_SIZE_RESERVE           = 16;  // 12 + 4
@@ -42,20 +41,25 @@ namespace yet {
 
     public:
       // 空间由外部申请
-      static char *encode_win_ack_size(char *out, int val);
-      static char *encode_chunk_size(char *out, uint32_t cs);
-      static char *encode_user_control_ping_response(char *out, int timestamp);
-      static char *encode_connect(char *out, int len, const char *app, const char *swf_url, const char *tc_url);
-      static char *encode_release_stream(char *out, int len, const char *stream_name);
-      static char *encode_fc_publish(char *out, int len, const char *stream_name);
-      static char *encode_create_stream(char *out);
-      static char *encode_publish(char *out, int len, const char *app, const char *stream_name, int stream_id);
+      static uint8_t *encode_win_ack_size(uint8_t *out, int val);
+      static uint8_t *encode_chunk_size(uint8_t *out, uint32_t cs);
+      static uint8_t *encode_user_control_ping_response(uint8_t *out, int timestamp);
+      static uint8_t *encode_connect(uint8_t *out, int len, const char *app, const char *swf_url, const char *tc_url);
+      static uint8_t *encode_release_stream(uint8_t *out, int len, const char *stream_name);
+      static uint8_t *encode_fc_publish(uint8_t *out, int len, const char *stream_name);
+      static uint8_t *encode_create_stream(uint8_t *out);
+      static uint8_t *encode_publish(uint8_t *out, int len, const char *app, const char *stream_name, int stream_id);
 
-      static char *encode_connect_result(char *out);
-      static char *encode_peer_bandwidth(char *out, int val);
-      static char *encode_create_stream_result(char *out, int stream_id);
-      static char *encode_on_status_publish(char *out, int stream_id);
+      static uint8_t *encode_connect_result(uint8_t *out);
+      static uint8_t *encode_peer_bandwidth(uint8_t *out, int val);
+      static uint8_t *encode_create_stream_result(uint8_t *out, int transaction_id, int stream_id);
+      static uint8_t *encode_on_status_publish(uint8_t *out, int stream_id);
 
-  }; // class RtmpPack
+    private:
+      RtmpPackOp() = delete;
+      RtmpPackOp(const RtmpPackOp &) = delete;
+      const RtmpPackOp &operator=(const RtmpPackOp &) = delete;
+
+  }; // class RtmpPackOp
 
 }; // namespace cav

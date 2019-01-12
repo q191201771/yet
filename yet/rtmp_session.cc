@@ -1,7 +1,7 @@
 #include "rtmp_session.h"
 #include "yet_inner.hpp"
 #include "rtmp_amf_op.h"
-#include "rtmp_pack.h"
+#include "rtmp_pack_op.h"
 #include <chef_base/chef_stuff_op.hpp>
 
 namespace yet {
@@ -9,7 +9,7 @@ namespace yet {
 #define SNIPPET_ENTER_CB \
   do { \
     if (!ec) { \
-      YET_LOG_INFO("{} len:{}", __func__, len); \
+      YET_LOG_DEBUG("{} len:{}", __func__, len); \
     } else { \
       YET_LOG_ERROR("{} ec:{}, len:{}", __func__, ec.message(), len); \
       return; \
@@ -17,6 +17,10 @@ namespace yet {
   } while(0);
 
 #define SNIPPET_KEEP_READ do { do_read(); return; } while(0);
+
+#define SNIPPET_ASYNC_READ(pos, len, func)    asio::async_read(socket_, asio::buffer(pos, len), std::bind(func, shared_from_this(), _1, _2));
+#define SNIPPET_ASYNC_READ_SOME(pos, len, func) socket_.async_read_some(asio::buffer(pos, len), std::bind(func, shared_from_this(), _1, _2));
+#define SNIPPET_ASYNC_WRITE(pos, len, func)  asio::async_write(socket_, asio::buffer(pos, len), std::bind(func, shared_from_this(), _1, _2));
 
 RTMPSession::RTMPSession(asio::ip::tcp::socket socket)
   : socket_(std::move(socket))
@@ -36,94 +40,65 @@ void RTMPSession::start() {
 }
 
 void RTMPSession::do_read_c0c1() {
-  asio::async_read(socket_, asio::buffer(read_buf_.write_pos(), C0C1_LEN),
-                   std::bind(&RTMPSession::read_c0c1_cb, shared_from_this(), _1, _2));
+  SNIPPET_ASYNC_READ(read_buf_.write_pos(), C0C1_LEN, &RTMPSession::read_c0c1_cb);
 }
 
-void RTMPSession::read_c0c1_cb(asio::error_code ec, std::size_t len) {
+void RTMPSession::read_c0c1_cb(ErrorCode ec, std::size_t len) {
   SNIPPET_ENTER_CB;
-
-  char ver = static_cast<int>(read_buf_.read_pos()[0]);
-  if (ver != RTMP_VERSION) {
-    YET_LOG_ERROR("CHEFFUCKME");
-  }
-
+  rtmp_handshake_.handle_c0c1(read_buf_.read_pos(), len);
   YET_LOG_INFO("---->Handshake C0+C1");
-
   do_write_s0s1();
 }
 
 void RTMPSession::do_write_s0s1() {
-  int32_t now_sec = static_cast<int32_t>(chef::stuff_op::unix_timestamp_msec() / 1000);
-  write_buf_.reserve(S0S1_LEN);
-  char *p = write_buf_.write_pos();
-  p[0] = RTMP_VERSION;
-  AmfOp::encode_int32(p+1, now_sec);
-  // TODO random
-
   YET_LOG_INFO("<----Handshake S0+S1");
-
-  //asio::async_write(socket_, asio::buffer(write_buf_.read_pos(), S0S1_LEN),
-  //                  std::bind(&RTMPSession::write_s0s1_cb, shared_from_this(), _1, _2));
-  asio::async_write(socket_, asio::buffer(read_buf_.read_pos(), S0S1_LEN),
-                    std::bind(&RTMPSession::write_s0s1_cb, shared_from_this(), _1, _2));
+  SNIPPET_ASYNC_WRITE(rtmp_handshake_.create_s0s1(), S0S1_LEN, &RTMPSession::write_s0s1_cb);
 }
 
-void RTMPSession::write_s0s1_cb(asio::error_code ec, std::size_t len) {
+void RTMPSession::write_s0s1_cb(ErrorCode ec, std::size_t len) {
   SNIPPET_ENTER_CB;
+  do_write_s2();
+}
 
+void RTMPSession::do_write_s2() {
+  YET_LOG_INFO("<----Handshake S2");
+  SNIPPET_ASYNC_WRITE(rtmp_handshake_.create_s2(), S2_LEN, &RTMPSession::write_s2_cb);
+}
+
+void RTMPSession::write_s2_cb(ErrorCode ec, std::size_t len) {
+  SNIPPET_ENTER_CB;
   do_read_c2();
 }
 
 void RTMPSession::do_read_c2() {
   read_buf_.reserve(C2_LEN);
-  asio::async_read(socket_, asio::buffer(read_buf_.write_pos(), C2_LEN),
-                   std::bind(&RTMPSession::read_c2_cb, shared_from_this(), _1, _2));
+  SNIPPET_ASYNC_READ(read_buf_.write_pos(), C2_LEN, &RTMPSession::read_c2_cb);
 }
 
-void RTMPSession::read_c2_cb(asio::error_code ec, std::size_t len) {
+void RTMPSession::read_c2_cb(ErrorCode ec, std::size_t len) {
   SNIPPET_ENTER_CB;
-
   YET_LOG_INFO("---->Handshake C2");
-
-  do_write_s2();
-}
-
-void RTMPSession::do_write_s2() {
-  write_buf_.reserve(S2_LEN);
-
-  YET_LOG_INFO("<----Handshake S2");
-
-  asio::async_write(socket_, asio::buffer(write_buf_.read_pos(), S2_LEN),
-                     std::bind(&RTMPSession::write_s2_cb, shared_from_this(), _1, _2));
-}
-
-void RTMPSession::write_s2_cb(asio::error_code ec, std::size_t len) {
-  SNIPPET_ENTER_CB;
-
   do_read();
 }
 
 void RTMPSession::do_read() {
   read_buf_.reserve(EACH_READ_LEN);
-  socket_.async_read_some(asio::buffer(read_buf_.write_pos(), EACH_READ_LEN),
-                        std::bind(&RTMPSession::read_cb, shared_from_this(), _1, _2));
+  SNIPPET_ASYNC_READ_SOME(read_buf_.write_pos(), 209, &RTMPSession::read_cb);
 }
 
-void RTMPSession::read_cb(asio::error_code ec, std::size_t len) {
+void RTMPSession::read_cb(ErrorCode ec, std::size_t len) {
   SNIPPET_ENTER_CB;
 
   read_buf_.seek_write_pos(len);
-
   //YET_LOG_INFO("{}", chef::stuff_op::bytes_to_hex((const uint8_t *)read_buf_.read_pos(), read_buf_.readable_size(), 16));
 
   for (; read_buf_.readable_size() > 0; ) {
-    YET_LOG_INFO("read_buf readable_size:{}", read_buf_.readable_size());
-    char *p = read_buf_.read_pos();
+    YET_LOG_DEBUG("Enter message parse loop. read_buf readable_size:{}", read_buf_.readable_size());
+    uint8_t *p = read_buf_.read_pos();
 
     int csid;
     if (!header_done_) {
-      int readable_size = read_buf_.readable_size();
+      std::size_t readable_size = read_buf_.readable_size();
 
       // 5.3.1.1. Chunk Basic Header 1,2,3bytes
       int basic_header_len;
@@ -149,7 +124,7 @@ void RTMPSession::read_cb(asio::error_code ec, std::size_t len) {
         return;
       }
 
-      YET_LOG_INFO("{} fmt:{}, csid:{}, basic_header_len:{}", (unsigned char)*p, fmt, csid, basic_header_len);
+      YET_LOG_DEBUG("Parsed basic header. {} fmt:{}, csid:{}, basic_header_len:{}", (unsigned char)*p, fmt, csid, basic_header_len);
 
       p += basic_header_len;
       readable_size -= basic_header_len;
@@ -195,38 +170,28 @@ void RTMPSession::read_cb(asio::error_code ec, std::size_t len) {
       header_done_ = true;
       read_buf_.erase(basic_header_len + fmt_2_msg_header_len[fmt] + (has_ext_ts ? 4 : 0));
 
-      YET_LOG_INFO("msg_header_len:{}, timestamp:{}, msg_len:{}, msg_type_id:{}, msg_stream_id:{}",
-                   fmt_2_msg_header_len[fmt], timestamp_, msg_len_, msg_type_id_, msg_stream_id_);
+      YET_LOG_DEBUG("Parsed chunk message header. msg_header_len:{}, timestamp:{}, msg_len:{}, msg_type_id:{}, msg_stream_id:{}",
+                    fmt_2_msg_header_len[fmt], timestamp_, msg_len_, msg_type_id_, msg_stream_id_);
     }
 
     int needed_size;
-    if (peer_chunk_size_ == -1) {
+    if (msg_len_ <= peer_chunk_size_) {
       needed_size = msg_len_;
     } else {
-      if (msg_len_ <= peer_chunk_size_) {
-        needed_size = msg_len_;
-      } else {
-        if (msg_len_ - complete_read_buf_.readable_size() >= peer_chunk_size_) { // 完整chunk
-          needed_size = peer_chunk_size_;
-        } else {
-          needed_size = msg_len_ - complete_read_buf_.readable_size();
-        }
-      }
+      int whole_needed = msg_len_ - (int)complete_read_buf_.readable_size();
+      needed_size = std::min(whole_needed, peer_chunk_size_);
     }
 
-    YET_LOG_INFO("CHEFERASEME rb:{} crb:{} ns:{} ml:{}", read_buf_.readable_size(), complete_read_buf_.readable_size(), needed_size, msg_len_);
-    if (read_buf_.readable_size() < needed_size) { SNIPPET_KEEP_READ; }
+    if ((int)read_buf_.readable_size() < needed_size) { SNIPPET_KEEP_READ; }
 
     complete_read_buf_.append(read_buf_.read_pos(), needed_size);
     read_buf_.erase(needed_size);
 
-    if (complete_read_buf_.readable_size() == msg_len_) {
+    if ((int)complete_read_buf_.readable_size() == msg_len_) {
       complete_message_handler();
       complete_read_buf_.clear();
     }
-    if (complete_read_buf_.readable_size() > msg_len_) {
-      YET_LOG_ERROR("CHEFFUCKME.");
-    }
+    YET_LOG_ASSERT((int)complete_read_buf_.readable_size() <= msg_len_, "readable size invalid.");
 
     header_done_ = false;
   }
@@ -241,9 +206,6 @@ void RTMPSession::complete_message_handler() {
   case MSG_TYPE_ID_ACK:
   case MSG_TYPE_ID_WIN_ACK_SIZE:
   case MSG_TYPE_ID_BANDWIDTH:
-    //if (csid != RTMP_CSID_PROTOCOL_CONTROL || msg_stream_id_ != RTMP_MSID_WHILE_PROTOCOL_CONTROL_MESSAGE) {
-    //  YET_LOG_ERROR("CHEFFUCKME.");
-    //}
     protocol_control_message_handler();
     break;
   case MSG_TYPE_ID_COMMAND_MESSAGE_AMF0:
@@ -252,6 +214,9 @@ void RTMPSession::complete_message_handler() {
   case MSG_TYPE_ID_DATA_MESSAGE_AMF0:
     data_message_handler();
     break;
+  case MSG_TYPE_ID_USER_CONTROL:
+    user_control_message_handler();
+    break;
   case MSG_TYPE_ID_AUDIO:
     audio_handler();
     break;
@@ -259,7 +224,7 @@ void RTMPSession::complete_message_handler() {
     video_handler();
     break;
   default:
-    YET_LOG_ERROR("CHEFFUCKME.");
+    YET_LOG_ERROR("CHEFFUCKME. {}", msg_type_id_);
   }
 }
 
@@ -278,46 +243,74 @@ void RTMPSession::video_handler() {
 }
 
 void RTMPSession::data_message_handler() {
-  YET_LOG_INFO("TODO");
+  YET_LOG_WARN("TODO");
+}
+
+void RTMPSession::user_control_message_handler() {
+  YET_LOG_WARN("TODO");
 }
 
 void RTMPSession::protocol_control_message_handler() {
+  int val;
+  AmfOp::decode_int32(complete_read_buf_.read_pos(), 4, &val, nullptr);
+
   switch (msg_type_id_) {
   case MSG_TYPE_ID_SET_CHUNK_SIZE:
-    set_chunk_size_handler();
+    set_chunk_size_handler(val);
+    break;
+  case MSG_TYPE_ID_ABORT:
+    YET_LOG_INFO("Recv protocol control message abort, ignore it. csid:{}", val);
+    break;
+  case MSG_TYPE_ID_ACK:
+    YET_LOG_INFO("Recv protocol control message ack, ignore it. seq num:{}", val);
+    break;
+  case MSG_TYPE_ID_WIN_ACK_SIZE:
+    win_ack_size_handler(val);
+    break;
+  case MSG_TYPE_ID_BANDWIDTH:
+    YET_LOG_INFO("Recv protocol control message bandwidth, ignore it. bandwidth:{}", val);
     break;
   default:
-    YET_LOG_ERROR("CHEFFUCKME.");
+    YET_LOG_ASSERT(false, "Unknown protocol control message. msg type id:{}", msg_type_id_);
   }
 }
 
-void RTMPSession::set_chunk_size_handler() {
-  AmfOp::decode_int32(complete_read_buf_.read_pos(), 4, &peer_chunk_size_, nullptr);
+void RTMPSession::set_chunk_size_handler(int val) {
+  peer_chunk_size_ = val;
   YET_LOG_INFO("---->Set Chunk Size {}", peer_chunk_size_);
+}
+
+void RTMPSession::win_ack_size_handler(int val) {
+  YET_LOG_INFO("---->Window Acknowledgement Size {}", peer_win_ack_size_);
 }
 
 // TODO same part
 void RTMPSession::command_message_handler() {
-  char *p = complete_read_buf_.read_pos();
+  uint8_t *p = complete_read_buf_.read_pos();
   char *command_name;
   int command_name_len;
   AmfOp::decode_string_with_type(p, complete_read_buf_.readable_size(), &command_name, &command_name_len, nullptr);
-  YET_LOG_INFO("command name:{}", std::string(command_name, command_name_len));
   if (strncmp(command_name, "connect", 7) == 0) {
     connect_handler();
   } else if (strncmp(command_name, "releaseStream", 13) == 0) {
     release_stream_handler();
   } else if (strncmp(command_name, "FCPublish", 9) == 0) {
-    fc_publish_handler();
+    fcpublish_handler();
   } else if (strncmp(command_name, "createStream", 12) == 0) {
     create_stream_handler();
   } else if (strncmp(command_name, "publish", 7) == 0) {
     publish_handler();
+  } else if (strncmp(command_name, "FCSubscribe", 11) == 0) {
+    fcsubscribe_handler();
+  } else if (strncmp(command_name, "play", 4) == 0) {
+    play_handler();
+  } else {
+    YET_LOG_ASSERT(0, "unhandle command:{}", std::string(command_name, command_name_len));
   }
 }
 
-void RTMPSession::fc_publish_handler() {
-  char *p = complete_read_buf_.read_pos() + 12;
+void RTMPSession::fcpublish_handler() {
+  uint8_t *p = complete_read_buf_.read_pos() + 12;
   double transaction_id;
   p = AmfOp::decode_number_with_type(p, complete_read_buf_.readable_size(), &transaction_id, nullptr);
   if (transaction_id != TRANSACTION_ID_FC_PUBLISH) {
@@ -332,7 +325,7 @@ void RTMPSession::fc_publish_handler() {
 }
 
 void RTMPSession::release_stream_handler() {
-  char *p = complete_read_buf_.read_pos() + 16;
+  uint8_t *p = complete_read_buf_.read_pos() + 16;
   double transaction_id;
   p = AmfOp::decode_number_with_type(p, complete_read_buf_.readable_size(), &transaction_id, nullptr);
   if (transaction_id != TRANSACTION_ID_RELEASE_STREAM) {
@@ -345,8 +338,28 @@ void RTMPSession::release_stream_handler() {
   YET_LOG_INFO("---->releaseStream(\'{}\')", std::string(name, name_len));
 }
 
+void RTMPSession::fcsubscribe_handler() {
+  YET_LOG_INFO("----->FCSubscribe()");
+  YET_LOG_WARN("TODO");
+}
+
+void RTMPSession::play_handler() {
+  uint8_t *p = complete_read_buf_.read_pos() + 7;
+  double transaction_id;
+  p = AmfOp::decode_number_with_type(p, complete_read_buf_.readable_size(), &transaction_id, nullptr);
+  YET_LOG_ERROR("tid:{}", transaction_id);
+  p++; // skip null
+  char *name;
+  int name_len;
+  p = AmfOp::decode_string_with_type(p, complete_read_buf_.readable_size(), &name, &name_len, nullptr);
+  YET_LOG_INFO("---->play(\'{}\')", std::string(name, name_len));
+
+  // TODO
+  // start duration reset
+}
+
 void RTMPSession::publish_handler() {
-  char *p = complete_read_buf_.read_pos() + 10;
+  uint8_t *p = complete_read_buf_.read_pos() + 10;
   double transaction_id;
   p = AmfOp::decode_number_with_type(p, complete_read_buf_.readable_size(), &transaction_id, nullptr);
   if (transaction_id != TRANSACTION_ID_PUBLISH) {
@@ -365,28 +378,24 @@ void RTMPSession::publish_handler() {
 }
 
 void RTMPSession::do_write_on_status_publish() {
-  int len = RtmpPack::encode_rtmp_msg_on_status_publish_reserve();
+  int len = RtmpPackOp::encode_rtmp_msg_on_status_publish_reserve();
   write_buf_.reserve(len);
   // TODO stream id
-  RtmpPack::encode_on_status_publish(write_buf_.write_pos(), 1);
-
+  RtmpPackOp::encode_on_status_publish(write_buf_.write_pos(), 1);
   YET_LOG_INFO("<----onStatus(\'NetStream.Publish.Start\')");
-
-  asio::async_write(socket_, asio::buffer(write_buf_.read_pos(), len),
-                    std::bind(&RTMPSession::write_on_status_cb, shared_from_this(), _1, _2));
+  SNIPPET_ASYNC_WRITE(write_buf_.read_pos(), len, &RTMPSession::write_on_status_cb);
 }
 
-void RTMPSession::write_on_status_cb(asio::error_code ec, std::size_t len) {
+void RTMPSession::write_on_status_cb(ErrorCode ec, std::size_t len) {
   SNIPPET_ENTER_CB;
 }
 
 void RTMPSession::create_stream_handler() {
-  char *p = complete_read_buf_.read_pos() + 15;
-  double transaction_id;
-  p = AmfOp::decode_number_with_type(p, complete_read_buf_.readable_size(), &transaction_id, nullptr);
-  if (transaction_id != TRANSACTION_ID_CREATE_STREAM) {
-    YET_LOG_ERROR("CHEFFUCKME.");
-  }
+  uint8_t *p = complete_read_buf_.read_pos() + 15;
+  p = AmfOp::decode_number_with_type(p, complete_read_buf_.readable_size(), &create_stream_transaction_id_, nullptr);
+  //if (transaction_id != TRANSACTION_ID_CREATE_STREAM) {
+  //  YET_LOG_ERROR("CHEFFUCKME. {}", transaction_id);
+  //}
 
   // TODO null obj
 
@@ -396,23 +405,20 @@ void RTMPSession::create_stream_handler() {
 }
 
 void RTMPSession::do_write_create_stream_result() {
-  int len = RtmpPack::encode_rtmp_msg_create_stream_result_reserve();
+  int len = RtmpPackOp::encode_rtmp_msg_create_stream_result_reserve();
   write_buf_.reserve(len);
   // TODO stream id
-  RtmpPack::encode_create_stream_result(write_buf_.write_pos(), 1);
-
+  RtmpPackOp::encode_create_stream_result(write_buf_.write_pos(), create_stream_transaction_id_, 1);
   YET_LOG_INFO("<----_result()");
-
-  asio::async_write(socket_, asio::buffer(write_buf_.read_pos(), len),
-                    std::bind(&RTMPSession::write_create_stream_result_cb, shared_from_this(), _1, _2));
+  SNIPPET_ASYNC_WRITE(write_buf_.read_pos(), len, &RTMPSession::write_create_stream_result_cb);
 }
 
-void RTMPSession::write_create_stream_result_cb(asio::error_code ec, std::size_t len) {
+void RTMPSession::write_create_stream_result_cb(ErrorCode ec, std::size_t len) {
   SNIPPET_ENTER_CB;
 }
 
 void RTMPSession::connect_handler() {
-  char *p = complete_read_buf_.read_pos() + 10;
+  uint8_t *p = complete_read_buf_.read_pos() + 10;
   double transaction_id;
   p = AmfOp::decode_number_with_type(p, complete_read_buf_.readable_size(), &transaction_id, nullptr);
   if (transaction_id != TRANSACTION_ID_CONNECT) {
@@ -422,7 +428,8 @@ void RTMPSession::connect_handler() {
   AmfObjectItemMap objs;
   //YET_LOG_INFO("{}", chef::stuff_op::bytes_to_hex((const uint8_t *)complete_read_buf_.read_pos()+4, 197-4, 16));
   p = AmfOp::decode_object(p, complete_read_buf_.readable_size(), &objs, nullptr);
-  YET_LOG_INFO("transaction_id:{}, objs:{}, decode object succ:{}", transaction_id, objs.stringify(), p != NULL);
+  YET_LOG_ASSERT(p, "decode command connect failed.");
+  //YET_LOG_INFO("transaction_id:{}, objs:{}, decode object succ:{}", transaction_id, objs.stringify(), p != nullptr);
 
   AmfObjectItem *app = objs.get("app");
   if (app->is_string()) {
@@ -433,65 +440,53 @@ void RTMPSession::connect_handler() {
 }
 
 void RTMPSession::do_write_win_ack_size() {
-  int len = RtmpPack::encode_rtmp_msg_win_ack_size_reserve();
+  int len = RtmpPackOp::encode_rtmp_msg_win_ack_size_reserve();
   write_buf_.reserve(len);
-  RtmpPack::encode_win_ack_size(write_buf_.write_pos(), WINDOW_ACKNOWLEDGEMENT_SIZE);
-
+  RtmpPackOp::encode_win_ack_size(write_buf_.write_pos(), WINDOW_ACKNOWLEDGEMENT_SIZE);
   YET_LOG_INFO("<----Window Acknowledgement Size {}", WINDOW_ACKNOWLEDGEMENT_SIZE);
-
-  asio::async_write(socket_, asio::buffer(write_buf_.read_pos(), len),
-                    std::bind(&RTMPSession::write_win_ack_size_cb, shared_from_this(), _1, _2));
+  SNIPPET_ASYNC_WRITE(write_buf_.read_pos(), len, &RTMPSession::write_win_ack_size_cb);
 }
 
-void RTMPSession::write_win_ack_size_cb(asio::error_code ec, std::size_t len) {
+void RTMPSession::write_win_ack_size_cb(ErrorCode ec, std::size_t len) {
   SNIPPET_ENTER_CB;
   do_write_peer_bandwidth();
 }
 
 void RTMPSession::do_write_peer_bandwidth() {
-  int len = RtmpPack::encode_rtmp_msg_peer_bandwidth_reserve();
+  int len = RtmpPackOp::encode_rtmp_msg_peer_bandwidth_reserve();
   write_buf_.reserve(len);
-  RtmpPack::encode_peer_bandwidth(write_buf_.write_pos(), PEER_BANDWIDTH);
-
+  RtmpPackOp::encode_peer_bandwidth(write_buf_.write_pos(), PEER_BANDWIDTH);
   YET_LOG_INFO("<----Set Peer Bandwidth {},Dynamic", PEER_BANDWIDTH);
-
-  asio::async_write(socket_, asio::buffer(write_buf_.read_pos(), len),
-                    std::bind(&RTMPSession::write_peer_bandwidth_cb, shared_from_this(), _1, _2));
+  SNIPPET_ASYNC_WRITE(write_buf_.read_pos(), len, &RTMPSession::write_peer_bandwidth_cb);
 }
 
-void RTMPSession::write_peer_bandwidth_cb(asio::error_code ec, std::size_t len) {
+void RTMPSession::write_peer_bandwidth_cb(ErrorCode ec, std::size_t len) {
   SNIPPET_ENTER_CB;
   do_write_chunk_size();
 }
 
 void RTMPSession::do_write_chunk_size() {
-  int len = RtmpPack::encode_rtmp_msg_chunk_size_reserve();
+  int len = RtmpPackOp::encode_rtmp_msg_chunk_size_reserve();
   write_buf_.reserve(len);
-  RtmpPack::encode_chunk_size(write_buf_.write_pos(), LOCAL_CHUNK_SIZE);
-
+  RtmpPackOp::encode_chunk_size(write_buf_.write_pos(), LOCAL_CHUNK_SIZE);
   YET_LOG_INFO("<----Set Chunk Size {}", LOCAL_CHUNK_SIZE);
-
-  asio::async_write(socket_, asio::buffer(write_buf_.read_pos(), len),
-                    std::bind(&RTMPSession::write_chunk_size_cb, shared_from_this(), _1, _2));
+  SNIPPET_ASYNC_WRITE(write_buf_.read_pos(), len, &RTMPSession::write_chunk_size_cb);
 }
 
-void RTMPSession::write_chunk_size_cb(asio::error_code ec, std::size_t len) {
+void RTMPSession::write_chunk_size_cb(ErrorCode ec, std::size_t len) {
   SNIPPET_ENTER_CB;
   do_write_connect_result();
 }
 
 void RTMPSession::do_write_connect_result() {
-  int len = RtmpPack::encode_rtmp_msg_connect_result_reserve();
+  int len = RtmpPackOp::encode_rtmp_msg_connect_result_reserve();
   write_buf_.reserve(len);
-  RtmpPack::encode_connect_result(write_buf_.write_pos());
-
+  RtmpPackOp::encode_connect_result(write_buf_.write_pos());
   YET_LOG_INFO("<----_result(\'NetConnection.Connect.Success\')");
-
-  asio::async_write(socket_, asio::buffer(write_buf_.read_pos(), len),
-                    std::bind(&RTMPSession::write_connect_result_cb, shared_from_this(), _1, _2));
+  SNIPPET_ASYNC_WRITE(write_buf_.read_pos(), len, &RTMPSession::write_connect_result_cb);
 }
 
-void RTMPSession::write_connect_result_cb(asio::error_code ec, std::size_t len) {
+void RTMPSession::write_connect_result_cb(ErrorCode ec, std::size_t len) {
   SNIPPET_ENTER_CB;
 }
 

@@ -15,12 +15,14 @@ void RTMPServer::do_accept() {
   acceptor_.async_accept(std::bind(&RTMPServer::accept_cb, this, _1, _2));
 }
 
-void RTMPServer::accept_cb(asio::error_code ec, asio::ip::tcp::socket socket) {
-  YET_LOG_INFO("accept_cb ec:{}", ec.message());
+void RTMPServer::accept_cb(ErrorCode ec, asio::ip::tcp::socket socket) {
+  YET_LOG_DEBUG("accept_cb ec:{}", ec.message());
 
   if (!ec) {
     auto session = std::make_shared<RTMPSession>(std::move(socket));
     session->start();
+  } else {
+    YET_LOG_ERROR("Accept failed. ec:{}", ec.message());
   }
 
   do_accept();
