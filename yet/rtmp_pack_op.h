@@ -40,7 +40,7 @@ namespace yet {
       static int encode_rtmp_msg_on_status_publish_reserve() { return ENCODE_RTMP_MSG_ON_STATUS_PUBLISH_RESERVE; }
 
     public:
-      // 空间由外部申请
+      /// memory alloc outsize by <out>
       static uint8_t *encode_win_ack_size(uint8_t *out, int val);
       static uint8_t *encode_chunk_size(uint8_t *out, uint32_t cs);
       static uint8_t *encode_user_control_ping_response(uint8_t *out, int timestamp);

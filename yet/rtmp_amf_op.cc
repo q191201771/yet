@@ -3,7 +3,7 @@
 #include <stdlib.h>
 #include <sstream>
 
-/// 注意,object中的name统一用2字节len头
+/// NOTICE all use 2 bytes name len
 #define ENCODE_OBJECT_NAME(out, name, name_len) \
   out = encode_int16(out, name_len); \
   memcpy(out, name, name_len); \

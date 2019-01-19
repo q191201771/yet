@@ -95,13 +95,14 @@ namespace yet {
       AmfObjectItemMap();
       ~AmfObjectItemMap();
 
-      // 插入前<name>不存在则返回true，存在返回false。注意，如果已存在，会进行覆盖
+      /// @return true if <name> not exist before put op, otherwise false
+      /// @NOTICE if exist before put op, will overwrite
       bool put(const std::string &name, bool v);
       bool put(const std::string &name, double v);
       bool put(const std::string &name, const std::string &v);
       bool put(const std::string &name, const char *v, int len);
 
-      // 存在则返回，不存在返回NULL
+      /// @return true if exist, otherwise false
       AmfObjectItem *get(const std::string &name);
 
       std::size_t size() const { return objs_.size(); }
@@ -144,14 +145,8 @@ namespace yet {
       }
 
     public:
-      /**
-       * @function encode_xxx
-       * @param out 空间由外部申请,调用前需确保有对应所需的剩余空间,可以使用上面提供的xxx_reserve系列函数
-       * @return 成功则返回<out>填入编码数据后的向后偏移后的位置，失败则返回NULL
-       * @NOTICE 函数内部不会修改待编码数据
-       *
-       */
-
+      /// @param <out> alloc outside, call xxx_reserve above if you not sure how big you need
+      /// @return if succ, return postion after <out>, return nullptr if failed
       static uint8_t *encode_int16(uint8_t *out, int16_t val);
       static uint8_t *encode_int24(uint8_t *out, int32_t val);
       static uint8_t *encode_int32(uint8_t *out, int32_t val);
@@ -180,16 +175,10 @@ namespace yet {
       static uint8_t *encode_ecma_array_end(uint8_t *out);
 
     public:
-      /**
-       * @function decode_xxx
-       * @param in 内部不会修改<in>内容
-       * @param valid_len 当前从<in>开始有效数据大小，如果该值小于解码需要的大小，则解码失败
-       * @param out 解码结果，如无特殊声明，则内存由外部提供
-       * @param used_len 解码使用了<in>多少字节，如果填入NULL，则表示不获取
-       * @return 成功则返回解码后<in>向后偏移的位置，和<used_len>提供的功能类似，失败则返回NULL
-       *
-       */
-
+      /// @param in won't mod it inside func
+      /// @param valid_len if less than decode needed,return nullptr
+      /// @param out deocoded data, alloc memory outside
+      /// @param used_len used length of <in>, if caller don't care about it just set it nullptr
       static uint8_t *decode_boolean_with_type(const uint8_t *in, int valid_len, bool *out, int *used_len);
       static uint8_t *decode_number_with_type(const uint8_t *in, int valid_len, double *out, int *used_len);
       static uint8_t *decode_int16(const uint8_t *in, int valid_len, int32_t *out, int *used_len);
@@ -198,7 +187,7 @@ namespace yet {
       static uint8_t *decode_int32_le(const uint8_t *in, int valid_len, int32_t *out, int *used_len);
 
 
-      // @NOTICE <out>指向<in>中某个位置，没有拷贝生成新内存
+      // @NOTICE no memory copy, <out> point to some position after <in>
       static uint8_t *decode_string(const uint8_t *in, int valid_len, char **out, int *str_len, int *used_len);
       static uint8_t *decode_string_with_type(const uint8_t *in, int valid_len, char **out, int *str_len, int *used_len);
 

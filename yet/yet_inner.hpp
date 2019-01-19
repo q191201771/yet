@@ -7,12 +7,14 @@
 #pragma once
 
 #include "yet_fwd.hpp"
+#include "yet_config.h"
 #include <spdlog/spdlog.h>
 #include <spdlog/sinks/stdout_color_sinks.h>
 
 namespace yet {
 
 extern std::shared_ptr<spdlog::logger> console;
+extern Config config;
 
 #define YET_LOG_DEBUG(...)  if (yet::console->should_log(spdlog::level::debug)) { yet::console->debug("{} - {}()#{}", fmt::format(__VA_ARGS__), __FUNCTION__, __LINE__); }
 #define YET_LOG_INFO(...)  if (yet::console->should_log(spdlog::level::info)) { yet::console->info("{} - {}()#{}", fmt::format(__VA_ARGS__), __FUNCTION__, __LINE__); }
@@ -22,6 +24,22 @@ extern std::shared_ptr<spdlog::logger> console;
 
 using std::placeholders::_1;
 using std::placeholders::_2;
+
+
+
+static constexpr std::size_t FLV_HEADER_FLV_VERSION = 9;
+static constexpr uint8_t FLV_HEADER_BUF_13[] = { 0x46, 0x4c, 0x56, 0x01, 0x05, 0x0, 0x0, 0x0, 0x09, 0x0, 0x0, 0x0, 0x0 };
+static constexpr char FLV_HTTP_HEADERS[] = \
+  "HTTP/1.1 200 OK\r\n" \
+  "Cache-Control: no-cache\r\n" \
+  "Content-Type: video/x-flv\r\n" \
+  "Connection: close\r\n" \
+  "Expires: -1\r\n" \
+  "Pragma: no-cache\r\n" \
+  "\r\n"
+  ;
+static constexpr std::size_t FLV_HTTP_HEADERS_LEN = sizeof(FLV_HTTP_HEADERS)-1;
+
 
 
 static constexpr std::size_t EACH_READ_LEN = 4096;
