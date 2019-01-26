@@ -25,6 +25,7 @@ namespace yet {
       static constexpr int ENCODE_RTMP_MSG_PEER_BANDWIDTH               = 17;  // 12 + 4 + 1
       static constexpr int ENCODE_RTMP_MSG_CREATE_STREAM_RESULT_RESERVE = 41;  // 12 + 10 + 9 + 1 + 9
       static constexpr int ENCODE_RTMP_MSG_ON_STATUS_PUBLISH_RESERVE    = 117; // 12 + 105
+      static constexpr int ENCODE_RTMP_MSG_ON_STATUS_PLAY_RESERVE       = 108; // 12 + 96
 
       static int encode_rtmp_msg_win_ack_size_reserve() { return ENCODE_RTMP_MSG_WIN_ACK_SIZE_RESERVE; }
       static int encode_rtmp_msg_chunk_size_reserve() { return ENCODE_RTMP_MSG_CHUNK_SIZE_RESERVE; }
@@ -38,6 +39,7 @@ namespace yet {
       static int encode_rtmp_msg_peer_bandwidth_reserve() { return ENCODE_RTMP_MSG_PEER_BANDWIDTH; }
       static int encode_rtmp_msg_create_stream_result_reserve() { return ENCODE_RTMP_MSG_CREATE_STREAM_RESULT_RESERVE; }
       static int encode_rtmp_msg_on_status_publish_reserve() { return ENCODE_RTMP_MSG_ON_STATUS_PUBLISH_RESERVE; }
+      static int encode_rtmp_msg_on_status_play_reserve() { return ENCODE_RTMP_MSG_ON_STATUS_PLAY_RESERVE; }
 
     public:
       /// memory alloc outsize by <out>
@@ -54,6 +56,7 @@ namespace yet {
       static uint8_t *encode_peer_bandwidth(uint8_t *out, int val);
       static uint8_t *encode_create_stream_result(uint8_t *out, int transaction_id, int stream_id);
       static uint8_t *encode_on_status_publish(uint8_t *out, int stream_id);
+      static uint8_t *encode_on_status_play(uint8_t *out, int stream_id);
 
     private:
       RtmpPackOp() = delete;
@@ -62,4 +65,4 @@ namespace yet {
 
   }; // class RtmpPackOp
 
-}; // namespace cav
+}; // namespace yet

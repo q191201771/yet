@@ -1,14 +1,17 @@
 #include "http_flv_server.h"
+#include "yet_server.h"
+#include "yet_group.h"
 #include "http_flv_sub.h"
 #include "http_flv_pull.h"
-#include "yet_group.h"
-#include "yet_inner.hpp"
+#include "yet.hpp"
 
 namespace yet {
 
-HttpFlvServer::HttpFlvServer(const std::string &listen_ip, uint16_t listen_port)
-  : listen_ip_(listen_ip)
+HttpFlvServer::HttpFlvServer(asio::io_context &io_ctx, const std::string &listen_ip, uint16_t listen_port, Server *server)
+  : io_ctx_(io_ctx)
+  , listen_ip_(listen_ip)
   , listen_port_(listen_port)
+  , server_(server)
   , acceptor_(io_ctx_, asio::ip::tcp::endpoint(asio::ip::address_v4::from_string(listen_ip_), listen_port_))
 {
 }
@@ -18,39 +21,33 @@ void HttpFlvServer::do_accept() {
 }
 
 void HttpFlvServer::accept_cb(const ErrorCode &ec, asio::ip::tcp::socket socket) {
-  YET_LOG_DEBUG("accept_cb ec:{}", ec.message());
-
-  if (!ec) {
-    auto pull = std::make_shared<HttpFlvSub>(std::move(socket), shared_from_this());
-    pull->start();
-
-  } else {
+  if (ec) {
     YET_LOG_ERROR("Accept failed. ec:{}", ec.message());
+    return;
   }
+
+  auto pull = std::make_shared<HttpFlvSub>(std::move(socket), shared_from_this());
+  pull->start();
 
   do_accept();
 }
 
-void HttpFlvServer::run_loop() {
+void HttpFlvServer::start() {
+  YET_LOG_INFO("Start http flv server. port:{}", listen_port_);
   do_accept();
+}
 
-  io_ctx_.run();
+void HttpFlvServer::dispose() {
+  YET_LOG_INFO("Stop http flv server listen.");
+  acceptor_.close();
 }
 
 void HttpFlvServer::on_http_flv_request(HttpFlvSubPtr sub, const std::string &uri, const std::string &app_name,
                                         const std::string &live_name, const std::string &host)
 {
-  GroupPtr group;
-  auto lng_iter = live_name_2_group_.find(live_name);
-  if (lng_iter != live_name_2_group_.end()) {
-    YET_LOG_DEBUG("on_http_flv_request. {} group exist.", live_name);
-    group = lng_iter->second;
-  } else {
-    group = std::make_shared<Group>(live_name);
-    live_name_2_group_[live_name] = group;
-    YET_LOG_DEBUG("on_http_flv_request. {} create group.", live_name);
-  }
-  auto in = group->get_in();
+  auto group = server_->get_or_create_group(live_name);
+
+  auto in = group->get_http_flv_pull();
   if (in) {
     YET_LOG_DEBUG("on_http_flv_request. {} in exist.", live_name);
   } else {
@@ -59,7 +56,7 @@ void HttpFlvServer::on_http_flv_request(HttpFlvSubPtr sub, const std::string &ur
     group->set_http_flv_pull(in);
   }
 
-  group->add_out(sub);
+  group->add_http_flv_sub(sub);
 }
 
 }

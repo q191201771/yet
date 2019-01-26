@@ -1,9 +1,9 @@
 #include "http_flv_sub.h"
 #include "http_flv_pull.h"
 #include "yet_group.h"
-#include "yet_inner.hpp"
-#include <chef_base/chef_strings_op.hpp>
-#include <chef_base/chef_stuff_op.hpp>
+#include "yet.hpp"
+#include "chef_base/chef_strings_op.hpp"
+#include "chef_base/chef_stuff_op.hpp"
 #include <string>
 
 #define SNIPPET_HANDLE_CB_ERROR if (ec) { YET_LOG_ERROR("ec:{}", ec.message()); return; }
@@ -118,20 +118,14 @@ void HttpFlvSub::send_metadata_cb(const ErrorCode &ec) {
   YET_LOG_INFO("Sent cached metadata.");
 
   if (auto group = group_.lock()) {
-    YET_LOG_DEBUG("CHEFERASEME");
     auto seq_header = group->get_video_seq_header();
     if (!seq_header) {
-      YET_LOG_DEBUG("CHEFERASEME");
       is_bc_ready_ = true;
     } else {
-      YET_LOG_DEBUG("CHEFERASEME");
       asio::async_write(socket_, asio::buffer(seq_header->read_pos(), seq_header->readable_size()),
                         std::bind(&HttpFlvSub::send_video_seq_header_cb, shared_from_this(), _1));
     }
-  } else {
-    YET_LOG_DEBUG("CHEFERASEME");
   }
-
 }
 
 void HttpFlvSub::send_video_seq_header_cb(const ErrorCode &ec) {
@@ -151,7 +145,6 @@ void HttpFlvSub::async_send(BufferPtr buf, const std::vector<FlvTagInfo> &tis) {
     for (auto &ti : tis) {
       if (ti.tag_type == FLVTAGTYPE_VIDEO) {
         if (*(ti.tag_pos + 11) == 0x17) {
-          YET_LOG_DEBUG("CHEFERASEME");
           send_buffers_.push(std::make_shared<Buffer>(ti.tag_pos, buf->write_pos()-ti.tag_pos));
           do_send();
           sent_first_key_frame_ = true;
@@ -199,7 +192,7 @@ void HttpFlvSub::set_group(std::weak_ptr<Group> group) {
 void HttpFlvSub::close() {
   socket_.close();
   if (auto group = group_.lock()) {
-    group->del_out(shared_from_this());
+    group->del_http_flv_sub(shared_from_this());
   }
 }
 

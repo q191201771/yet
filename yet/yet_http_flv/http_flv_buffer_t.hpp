@@ -6,6 +6,8 @@
 
 #pragma once
 
+#include "yet_http_flv/http_flv.hpp"
+
 namespace yet {
 
 static constexpr std::size_t INIT_METADATA_BUFFER_LEN   = 4096;
@@ -31,7 +33,7 @@ static std::string stringify_stl_one_(const FlvTagInfo &ti) {
 
 /// return 0 if complete, otherwise return miss length
 static std::size_t check_tag_complete(BufferPtr buf, const FlvTagInfo &ti) {
-  if (buf->write_pos() - ti.tag_pos >= ti.tag_whole_size) { return 0; }
+  if (std::size_t(buf->write_pos() - ti.tag_pos) >= ti.tag_whole_size) { return 0; }
 
   return ti.tag_whole_size - (buf->write_pos() - ti.tag_pos);
 }

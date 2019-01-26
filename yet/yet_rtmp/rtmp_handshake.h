@@ -6,7 +6,8 @@
 
 #pragma once
 
-#include "yet_fwd.hpp"
+#include "yet.hpp"
+#include "rtmp.hpp"
 
 namespace yet {
 
@@ -35,8 +36,8 @@ class RtmpHandshake {
     const RtmpHandshake &operator=(const RtmpHandshake &) = delete;
 
   private:
-    uint8_t s0s1_[S0S1_LEN];
-    uint8_t s2_[S2_LEN];
+    uint8_t s0s1_[RTMP_S0S1_LEN];
+    uint8_t s2_[RTMP_S2_LEN];
     int timestamp_recvd_c1_;
     int timestamp_sent_s1_;
     bool is_old_;

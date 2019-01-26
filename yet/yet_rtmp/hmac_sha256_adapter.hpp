@@ -13,7 +13,7 @@
   #include <openssl/hmac.h>
   #include <openssl/sha.h>
 #elif defined(YET_HMAC_SHA256_CHEF)
-  #include <chef_base/chef_crypto_hmac_sha256.hpp>
+  #include "chef_base/chef_crypto_hmac_sha256.hpp"
 #endif
 
 namespace yet {

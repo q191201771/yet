@@ -7,18 +7,43 @@
 #pragma once
 
 #include <memory>
-#include "rtmp_handshake.h"
-#include "yet_fwd.hpp"
-
+#include <queue>
+#include "yet.hpp"
+#include "chef_base/chef_snippet.hpp"
+#include "yet_rtmp/rtmp.hpp"
+#include "yet_rtmp/rtmp_handshake.h"
 
 namespace yet {
 
-class RTMPSession : public std::enable_shared_from_this<RTMPSession> {
+enum RtmpSessionType {
+  RTMP_SESSION_TYPE_UNKNOWN = 1,
+  RTMP_SESSION_TYPE_PUB     = 2,
+  RTMP_SESSION_TYPE_SUB     = 3
+};
+
+class RtmpSessionObserver {
   public:
-    explicit RTMPSession(asio::ip::tcp::socket socket);
-    ~RTMPSession();
+    virtual ~RtmpSessionObserver() {}
+    //virtual void on_rtmp_connected() = 0;
+
+    virtual void on_rtmp_publish(RtmpSessionPtr session, const std::string &app, const std::string &live_name) = 0;
+
+    virtual void on_rtmp_play(RtmpSessionPtr session, const std::string &app, const std::string &live_name) = 0;
+};
+
+class RtmpSession : public std::enable_shared_from_this<RtmpSession> {
+  public:
+    explicit RtmpSession(asio::ip::tcp::socket socket, std::weak_ptr<RtmpSessionObserver> obs);
+    ~RtmpSession();
 
     void start();
+
+    void set_group(std::weak_ptr<Group> group);
+
+    void dispose() {}
+
+  public:
+    void async_send(BufferPtr buf);
 
   private:
     void do_read_c0c1();
@@ -41,8 +66,14 @@ class RTMPSession : public std::enable_shared_from_this<RTMPSession> {
     void write_connect_result_cb(ErrorCode ec, std::size_t len);
     void do_write_create_stream_result();
     void write_create_stream_result_cb(ErrorCode ec, std::size_t len);
+
+  private:
     void do_write_on_status_publish();
-    void write_on_status_cb(ErrorCode ec, std::size_t len);
+    void write_on_status_publish_cb(ErrorCode ec, std::size_t len);
+
+  private:
+    void do_write_on_status_play();
+    void write_on_status_play_cb(ErrorCode ec, std::size_t len);
 
   private:
     void complete_message_handler();
@@ -64,28 +95,41 @@ class RTMPSession : public std::enable_shared_from_this<RTMPSession> {
 
     void data_message_handler();
 
-    void audio_handler();
-    void video_handler();
+  private:
+    void av_handler();
 
   private:
-    RTMPSession(const RTMPSession &) = delete;
-    RTMPSession &operator=(const RTMPSession &) = delete;
+    void do_send();
+    void send_cb(const ErrorCode &ec, std::size_t len);
 
   private:
-    asio::ip::tcp::socket socket_;
-    RtmpHandshake rtmp_handshake_;
-    chef::buffer read_buf_;
-    chef::buffer write_buf_;
-    chef::buffer complete_read_buf_;
-    int timestamp_;
-    int timestamp_base_ = -1;
-    int msg_len_;
-    int msg_type_id_;
-    int msg_stream_id_;
-    bool header_done_ = false;
-    int peer_chunk_size_ = DEFAULT_CHUNK_SIZE;
-    int peer_win_ack_size_ = -1;
-    double create_stream_transaction_id_ = -1;
+    RtmpSession(const RtmpSession &) = delete;
+    RtmpSession &operator=(const RtmpSession &) = delete;
+
+  public:
+    CHEF_PROPERTY_WITH_INIT_VALUE(bool, has_sent_av, false);
+
+  private:
+    asio::ip::tcp::socket              socket_;
+    std::weak_ptr<RtmpSessionObserver> obs_;
+    RtmpHandshake                      rtmp_handshake_;
+    chef::buffer                       read_buf_;
+    chef::buffer                       write_buf_;
+    BufferPtr                          complete_read_buf_;
+    std::weak_ptr<Group>               group_;
+    int                                timestamp_;
+    int                                timestamp_base_ = -1;
+    int                                msg_len_;
+    int                                msg_type_id_;
+    int                                msg_stream_id_;
+    bool                               header_done_ = false;
+    int                                peer_chunk_size_ = RTMP_DEFAULT_CHUNK_SIZE;
+    int                                peer_win_ack_size_ = -1;
+    double                             create_stream_transaction_id_ = -1;
+    std::string                        app_;
+    std::string                        live_name_;
+    std::queue<BufferPtr>              send_buffers_;
+    RtmpSessionType                    type_ = RTMP_SESSION_TYPE_UNKNOWN;
 };
 
 }

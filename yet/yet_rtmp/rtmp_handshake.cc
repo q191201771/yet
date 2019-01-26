@@ -1,8 +1,7 @@
 #include "rtmp_handshake.h"
-#include "rtmp_amf_op.h"
-#include "yet_inner.hpp"
-#include <chef_base/chef_stuff_op.hpp>
-#include "hmac_sha256_adapter.hpp"
+#include "yet_rtmp/hmac_sha256_adapter.hpp"
+#include "yet_rtmp/rtmp_amf_op.h"
+#include "chef_base/chef_stuff_op.hpp"
 
 namespace yet {
 
@@ -169,8 +168,8 @@ bool RtmpHandshake::rtmp_handshake_parse_challenge(const uint8_t *buf, std::size
   }
   YET_LOG_INFO("CHEFGREPME !!!");
 
-  static constexpr std::size_t digest_pos = S2_LEN - RTMP_HANDSHAKE_KEYLEN;
-  if (!rtmp_make_digest((const uint8_t *)s2_, S2_LEN, (const uint8_t *)s2_+digest_pos, digest, RTMP_HANDSHAKE_KEYLEN, (uint8_t *)s2_+ digest_pos)) {
+  static constexpr std::size_t digest_pos = RTMP_S2_LEN - RTMP_HANDSHAKE_KEYLEN;
+  if (!rtmp_make_digest((const uint8_t *)s2_, RTMP_S2_LEN, (const uint8_t *)s2_+digest_pos, digest, RTMP_HANDSHAKE_KEYLEN, (uint8_t *)s2_+ digest_pos)) {
     YET_LOG_ERROR("CHEFGREPME Make s2 final digest failed.");
     return false;
   }
@@ -179,7 +178,7 @@ bool RtmpHandshake::rtmp_handshake_parse_challenge(const uint8_t *buf, std::size
 }
 
 bool RtmpHandshake::handle_c0c1(const uint8_t *c0c1, std::size_t len) {
-  if (len < C0C1_LEN) {
+  if (len < RTMP_C0C1_LEN) {
     YET_LOG_ERROR("Handle c0c1 failed since len too short. len:{}", len);
     return false;
   }
@@ -208,7 +207,7 @@ uint8_t *RtmpHandshake::create_s0s1() {
     return s0s1_;
   }
 
-  rtmp_handshake_create_challenge(s0s1_, S0S1_LEN, RTMP_SERVER_VERSION, RTMP_SERVER_KEY, RTMP_SERVER_PART_KEYLEN);
+  rtmp_handshake_create_challenge(s0s1_, RTMP_S0S1_LEN, RTMP_SERVER_VERSION, RTMP_SERVER_KEY, RTMP_SERVER_PART_KEYLEN);
   return s0s1_;
 }
 

@@ -6,8 +6,8 @@
 
 #pragma once
 
-#include "yet_fwd.hpp"
-#include "http_flv_buffer_t.hpp"
+#include "yet.hpp"
+#include "yet_http_flv/http_flv_buffer_t.hpp"
 #include <queue>
 
 namespace yet {
@@ -33,6 +33,8 @@ class HttpFlvSub : public std::enable_shared_from_this<HttpFlvSub> {
 
     void set_group(std::weak_ptr<Group> group);
 
+    void dispose() {}
+
   private:
     void close();
 
@@ -51,13 +53,13 @@ class HttpFlvSub : public std::enable_shared_from_this<HttpFlvSub> {
     HttpFlvSub &operator=(const HttpFlvSub &) = delete;
 
   private:
-    asio::ip::tcp::socket                 socket_;
+    asio::ip::tcp::socket             socket_;
     std::weak_ptr<HttpFlvSubObserver> obs_;
-    std::weak_ptr<Group>                  group_;
-    asio::streambuf                       request_buf_;
-    std::queue<BufferPtr>                 send_buffers_;
-    bool                                  is_bc_ready_ = false;
-    bool                                  sent_first_key_frame_ = false;
+    std::weak_ptr<Group>              group_;
+    asio::streambuf                   request_buf_;
+    std::queue<BufferPtr>             send_buffers_;
+    bool                              is_bc_ready_ = false;
+    bool                              sent_first_key_frame_ = false;
 };
 
 }

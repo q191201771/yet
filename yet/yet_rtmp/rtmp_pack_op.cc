@@ -1,6 +1,6 @@
 #include "rtmp_pack_op.h"
-#include "rtmp_amf_op.h"
-#include "yet_inner.hpp"
+#include "yet_rtmp/rtmp_amf_op.h"
+#include "rtmp.hpp"
 #include <arpa/inet.h>
 #include <string.h>
 
@@ -49,37 +49,37 @@ static inline uint8_t *ENCODE_MESSAGE_HEADER(uint8_t *out, int csid, int len, in
 }
 
 uint8_t *RtmpPackOp::encode_chunk_size(uint8_t *out, uint32_t cs) {
-  out = ENCODE_MESSAGE_HEADER(out, RTMP_CSID_PROTOCOL_CONTROL, 4, MSG_TYPE_ID_SET_CHUNK_SIZE, 0);
+  out = ENCODE_MESSAGE_HEADER(out, RTMP_CSID_PROTOCOL_CONTROL, 4, RTMP_MSG_TYPE_ID_SET_CHUNK_SIZE, 0);
   out = AmfOp::encode_int32(out, cs);
   return out;
 }
 
 uint8_t *RtmpPackOp::encode_win_ack_size(uint8_t *out, int val) {
-  out = ENCODE_MESSAGE_HEADER(out, RTMP_CSID_PROTOCOL_CONTROL, 4, MSG_TYPE_ID_WIN_ACK_SIZE, 0);
+  out = ENCODE_MESSAGE_HEADER(out, RTMP_CSID_PROTOCOL_CONTROL, 4, RTMP_MSG_TYPE_ID_WIN_ACK_SIZE, 0);
   out = AmfOp::encode_int32(out, val);
   return out;
 }
 
 uint8_t *RtmpPackOp::encode_peer_bandwidth(uint8_t *out, int val) {
-  out = ENCODE_MESSAGE_HEADER(out, RTMP_CSID_PROTOCOL_CONTROL, 5, MSG_TYPE_ID_BANDWIDTH, 0);
+  out = ENCODE_MESSAGE_HEADER(out, RTMP_CSID_PROTOCOL_CONTROL, 5, RTMP_MSG_TYPE_ID_BANDWIDTH, 0);
   out = AmfOp::encode_int32(out, val);
-  *out++ = PEER_BANDWITH_LIMIT_TYPE_DYNAMIC;
+  *out++ = RTMP_PEER_BANDWITH_LIMIT_TYPE_DYNAMIC;
 
   return out;
 }
 
 uint8_t *RtmpPackOp::encode_user_control_ping_response(uint8_t *out, int timestamp) {
-  out = ENCODE_MESSAGE_HEADER(out, RTMP_CSID_PROTOCOL_CONTROL, 6, MSG_TYPE_ID_USER_CONTROL, 0);
+  out = ENCODE_MESSAGE_HEADER(out, RTMP_CSID_PROTOCOL_CONTROL, 6, RTMP_MSG_TYPE_ID_USER_CONTROL, 0);
   out = AmfOp::encode_int16(out, USER_CONTROL_EVENT_TYPE_PING_RESPONSE);
   out = AmfOp::encode_int32(out, timestamp);
   return out;
 }
 
 uint8_t *RtmpPackOp::encode_connect(uint8_t *out, int len, const char *app, const char *swf_url, const char *tc_url) {
-  out = ENCODE_MESSAGE_HEADER(out, RTMP_CSID_OVER_CONNECTION, len-CHUNK_HEADER_SIZE_TYPE0, MSG_TYPE_ID_COMMAND_MESSAGE_AMF0, 0);
+  out = ENCODE_MESSAGE_HEADER(out, RTMP_CSID_OVER_CONNECTION, len-CHUNK_HEADER_SIZE_TYPE0, RTMP_MSG_TYPE_ID_COMMAND_MESSAGE_AMF0, 0);
 
   out = AmfOp::encode_string(out, "connect", 7);
-  out = AmfOp::encode_number(out, TRANSACTION_ID_CONNECT);
+  out = AmfOp::encode_number(out, RTMP_TRANSACTION_ID_CONNECT);
   out = AmfOp::encode_object_begin(out);
   out = AmfOp::encode_object_named_string(out, "app", 3, app, STRLEN(app));
   out = AmfOp::encode_object_named_string(out, "swfUrl", 6, swf_url, STRLEN(swf_url));
@@ -90,10 +90,10 @@ uint8_t *RtmpPackOp::encode_connect(uint8_t *out, int len, const char *app, cons
 }
 
 uint8_t *RtmpPackOp::encode_connect_result(uint8_t *out) {
-  out = ENCODE_MESSAGE_HEADER(out, RTMP_CSID_OVER_CONNECTION, 190, MSG_TYPE_ID_COMMAND_MESSAGE_AMF0, 0);
+  out = ENCODE_MESSAGE_HEADER(out, RTMP_CSID_OVER_CONNECTION, 190, RTMP_MSG_TYPE_ID_COMMAND_MESSAGE_AMF0, 0);
 
   out = AmfOp::encode_string(out, "_result", 7);
-  out = AmfOp::encode_number(out, TRANSACTION_ID_CONNECT);
+  out = AmfOp::encode_number(out, RTMP_TRANSACTION_ID_CONNECT);
   out = AmfOp::encode_object_begin(out);
   // TODO cache me
   out = AmfOp::encode_object_named_string(out, "fmsVer", 6, "FMS/3,0,1,123", 13);
@@ -111,11 +111,11 @@ uint8_t *RtmpPackOp::encode_connect_result(uint8_t *out) {
 }
 
 uint8_t *RtmpPackOp::encode_release_stream(uint8_t *out, int len, const char *stream_name) {
-  out = ENCODE_MESSAGE_HEADER(out, RTMP_CSID_OVER_CONNECTION, len-CHUNK_HEADER_SIZE_TYPE0, MSG_TYPE_ID_COMMAND_MESSAGE_AMF0, 0);
+  out = ENCODE_MESSAGE_HEADER(out, RTMP_CSID_OVER_CONNECTION, len-CHUNK_HEADER_SIZE_TYPE0, RTMP_MSG_TYPE_ID_COMMAND_MESSAGE_AMF0, 0);
 
   // TODO cache me
   out = AmfOp::encode_string(out, "releaseStream", STRLEN("releaseStream"));
-  out = AmfOp::encode_number(out, TRANSACTION_ID_RELEASE_STREAM);
+  out = AmfOp::encode_number(out, RTMP_TRANSACTION_ID_RELEASE_STREAM);
   out = AmfOp::encode_null(out);
   out = AmfOp::encode_string(out, stream_name, STRLEN(stream_name));
 
@@ -123,10 +123,10 @@ uint8_t *RtmpPackOp::encode_release_stream(uint8_t *out, int len, const char *st
 }
 
 uint8_t *RtmpPackOp::encode_fc_publish(uint8_t *out, int len, const char *stream_name) {
-  out = ENCODE_MESSAGE_HEADER(out, RTMP_CSID_OVER_CONNECTION, len-CHUNK_HEADER_SIZE_TYPE0, MSG_TYPE_ID_COMMAND_MESSAGE_AMF0, 0);
+  out = ENCODE_MESSAGE_HEADER(out, RTMP_CSID_OVER_CONNECTION, len-CHUNK_HEADER_SIZE_TYPE0, RTMP_MSG_TYPE_ID_COMMAND_MESSAGE_AMF0, 0);
 
   out = AmfOp::encode_string(out, "FCPublish", STRLEN("FCPublish"));
-  out = AmfOp::encode_number(out, TRANSACTION_ID_FC_PUBLISH);
+  out = AmfOp::encode_number(out, RTMP_TRANSACTION_ID_FC_PUBLISH);
   out = AmfOp::encode_null(out);
   out = AmfOp::encode_string(out, stream_name, STRLEN(stream_name));
 
@@ -136,17 +136,17 @@ uint8_t *RtmpPackOp::encode_fc_publish(uint8_t *out, int len, const char *stream
 
 uint8_t *RtmpPackOp::encode_create_stream(uint8_t *out) {
   out = ENCODE_MESSAGE_HEADER(out, RTMP_CSID_OVER_CONNECTION,
-                              ENCODE_RTMP_MSG_CREATE_STREAM_RESERVE-CHUNK_HEADER_SIZE_TYPE0, MSG_TYPE_ID_COMMAND_MESSAGE_AMF0, 0);
+                              ENCODE_RTMP_MSG_CREATE_STREAM_RESERVE-CHUNK_HEADER_SIZE_TYPE0, RTMP_MSG_TYPE_ID_COMMAND_MESSAGE_AMF0, 0);
 
   out = AmfOp::encode_string(out, "createStream", STRLEN("createStream"));
-  out = AmfOp::encode_number(out, TRANSACTION_ID_CREATE_STREAM);
+  out = AmfOp::encode_number(out, RTMP_TRANSACTION_ID_CREATE_STREAM);
   out = AmfOp::encode_null(out);
 
   return out;
 }
 
 uint8_t *RtmpPackOp::encode_create_stream_result(uint8_t *out, int transaction_id, int stream_id) {
-  out = ENCODE_MESSAGE_HEADER(out, RTMP_CSID_OVER_CONNECTION, 29, MSG_TYPE_ID_COMMAND_MESSAGE_AMF0, 0);
+  out = ENCODE_MESSAGE_HEADER(out, RTMP_CSID_OVER_CONNECTION, 29, RTMP_MSG_TYPE_ID_COMMAND_MESSAGE_AMF0, 0);
   out = AmfOp::encode_string(out, "_result", 7);
   out = AmfOp::encode_number(out, transaction_id);
   out = AmfOp::encode_null(out);
@@ -155,7 +155,7 @@ uint8_t *RtmpPackOp::encode_create_stream_result(uint8_t *out, int transaction_i
 }
 
 uint8_t *RtmpPackOp::encode_on_status_publish(uint8_t *out, int stream_id) {
-  out = ENCODE_MESSAGE_HEADER(out, RTMP_CSID_OVER_STREAM, 105, MSG_TYPE_ID_COMMAND_MESSAGE_AMF0, stream_id);
+  out = ENCODE_MESSAGE_HEADER(out, RTMP_CSID_OVER_STREAM, 105, RTMP_MSG_TYPE_ID_COMMAND_MESSAGE_AMF0, stream_id);
   out = AmfOp::encode_string(out, "onStatus", 8);
   out = AmfOp::encode_number(out, 0);
   out = AmfOp::encode_null(out);
@@ -168,11 +168,25 @@ uint8_t *RtmpPackOp::encode_on_status_publish(uint8_t *out, int stream_id) {
   return out;
 }
 
+uint8_t *RtmpPackOp::encode_on_status_play(uint8_t *out, int stream_id) {
+  out = ENCODE_MESSAGE_HEADER(out, RTMP_CSID_OVER_STREAM, 96, RTMP_MSG_TYPE_ID_COMMAND_MESSAGE_AMF0, stream_id);
+  out = AmfOp::encode_string(out, "onStatus", 8);
+  out = AmfOp::encode_number(out, 0);
+  out = AmfOp::encode_null(out);
+
+  out = AmfOp::encode_object_begin(out);
+  out = AmfOp::encode_object_named_string(out, "level", 5, "status", 6);
+  out = AmfOp::encode_object_named_string(out, "code", 4, "NetStream.Play.Start", 20);
+  out = AmfOp::encode_object_named_string(out, "description", 11, "Start live", 10);
+  out = AmfOp::encode_object_end(out);
+  return out;
+}
+
 uint8_t *RtmpPackOp::encode_publish(uint8_t *out, int len, const char *app, const char *stream_name, int stream_id) {
-  out = ENCODE_MESSAGE_HEADER(out, RTMP_CSID_OVER_STREAM, len-CHUNK_HEADER_SIZE_TYPE0, MSG_TYPE_ID_COMMAND_MESSAGE_AMF0, stream_id);
+  out = ENCODE_MESSAGE_HEADER(out, RTMP_CSID_OVER_STREAM, len-CHUNK_HEADER_SIZE_TYPE0, RTMP_MSG_TYPE_ID_COMMAND_MESSAGE_AMF0, stream_id);
 
   out = AmfOp::encode_string(out, "publish", STRLEN("publish"));
-  out = AmfOp::encode_number(out, TRANSACTION_ID_PUBLISH);
+  out = AmfOp::encode_number(out, RTMP_TRANSACTION_ID_PUBLISH);
   out = AmfOp::encode_null(out);
   out = AmfOp::encode_string(out, stream_name, STRLEN(stream_name));
   out = AmfOp::encode_string(out, app, STRLEN(app));
@@ -180,4 +194,4 @@ uint8_t *RtmpPackOp::encode_publish(uint8_t *out, int len, const char *app, cons
   return out;
 }
 
-}; // namespace cav
+}; // namespace yet

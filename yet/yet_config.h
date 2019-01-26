@@ -6,8 +6,8 @@
 
 #pragma once
 
-#include <chef_base/chef_snippet.hpp>
 #include <string>
+#include "chef_base/chef_snippet.hpp"
 
 class Config {
   public:

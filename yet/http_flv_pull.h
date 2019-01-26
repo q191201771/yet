@@ -6,8 +6,8 @@
 
 #pragma once
 
-#include "yet_fwd.hpp"
-#include "http_flv_buffer_t.hpp"
+#include "yet.hpp"
+#include "yet_http_flv/http_flv_buffer_t.hpp"
 
 namespace yet {
 
@@ -16,6 +16,8 @@ class HttpFlvPull : public std::enable_shared_from_this<HttpFlvPull> {
     HttpFlvPull(asio::io_context& io_context, const std::string& server, const std::string& path);
 
     void set_group(std::weak_ptr<Group> group);
+
+    void dispose() {}
 
     BufferPtr get_metadata();
     BufferPtr get_video_seq_header();

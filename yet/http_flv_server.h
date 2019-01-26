@@ -8,7 +8,7 @@
 
 #include <unordered_map>
 #include <string>
-#include "yet_fwd.hpp"
+#include "yet.hpp"
 #include "http_flv_sub.h"
 
 namespace yet {
@@ -17,10 +17,12 @@ class HttpFlvServer : public std::enable_shared_from_this<HttpFlvServer>
                     , public HttpFlvSubObserver
 {
   public:
-    HttpFlvServer(const std::string &listen_ip, uint16_t listen_port);
+    HttpFlvServer(asio::io_context &io_ctx, const std::string &listen_ip, uint16_t listen_port, Server *server);
     virtual ~HttpFlvServer() {}
 
-    void run_loop();
+    void start();
+
+    void dispose();
 
   private:
     void do_accept();
@@ -35,11 +37,11 @@ class HttpFlvServer : public std::enable_shared_from_this<HttpFlvServer>
     HttpFlvServer &operator=(const HttpFlvServer &);
 
   private:
+    asio::io_context        &io_ctx_;
     std::string             listen_ip_;
     uint16_t                listen_port_;
-    asio::io_context        io_ctx_;
+    Server                  *server_;
     asio::ip::tcp::acceptor acceptor_;
-    std::unordered_map<std::string, GroupPtr> live_name_2_group_;
 };
 
 }

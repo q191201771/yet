@@ -1,0 +1,45 @@
+#include "yet_server.h"
+#include "rtmp_server.h"
+#include "http_flv_server.h"
+#include "yet_group.h"
+
+namespace yet {
+
+Server::Server(const std::string &rtmp_listen_ip, uint16_t rtmp_listen_port,
+               const std::string &http_flv_listen_ip, uint16_t http_flv_listen_port)
+  : rtmp_server_(std::make_shared<RtmpServer>(io_ctx_, rtmp_listen_ip, rtmp_listen_port, this))
+  , http_flv_server_(std::make_shared<HttpFlvServer>(io_ctx_, http_flv_listen_ip, http_flv_listen_port, this))
+{
+}
+
+Server::~Server() {
+  YET_LOG_DEBUG("~Server. {}", (void *)this);
+}
+
+void Server::run_loop() {
+  rtmp_server_->start();
+  http_flv_server_->start();
+  io_ctx_.run();
+}
+
+void Server::dispose() {
+  rtmp_server_->dispose();
+  http_flv_server_->dispose();
+
+  for (auto &it : live_name_2_group_) {
+    it.second->dispose();
+  }
+}
+
+GroupPtr Server::get_or_create_group(const std::string &live_name) {
+  auto iter = live_name_2_group_.find(live_name);
+  if (iter != live_name_2_group_.end()) {
+    return iter->second;
+  }
+
+  GroupPtr group = std::make_shared<Group>(live_name);
+  live_name_2_group_[live_name] = group;
+  return group;
+}
+
+}
