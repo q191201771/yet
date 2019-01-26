@@ -1,12 +1,15 @@
 /**
  * @file   http_flv_buffer_t.hpp
  * @author pengrl
+ * @date   20190127
  *
  */
 
 #pragma once
 
+#include <sstream>
 #include "yet_http_flv/http_flv.hpp"
+#include "chef_base/chef_buffer.hpp"
 
 namespace yet {
 

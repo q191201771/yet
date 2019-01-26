@@ -1,11 +1,13 @@
 /**
  * @file   http_flv_pull.h
  * @author pengrl
+ * @date   20190127
  *
  */
 
 #pragma once
 
+#include <asio.hpp>
 #include "yet.hpp"
 #include "yet_http_flv/http_flv_buffer_t.hpp"
 
@@ -14,6 +16,7 @@ namespace yet {
 class HttpFlvPull : public std::enable_shared_from_this<HttpFlvPull> {
   public:
     HttpFlvPull(asio::io_context& io_context, const std::string& server, const std::string& path);
+    ~HttpFlvPull();
 
     void set_group(std::weak_ptr<Group> group);
 

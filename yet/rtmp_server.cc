@@ -1,4 +1,5 @@
 #include "rtmp_server.h"
+#include <asio.hpp>
 #include "yet_server.h"
 #include "yet_group.h"
 #include "rtmp_session.h"
@@ -13,6 +14,11 @@ RtmpServer::RtmpServer(asio::io_context &io_ctx, const std::string &listen_ip, u
   , server_(server)
   , acceptor_(io_ctx_, asio::ip::tcp::endpoint(asio::ip::address_v4::from_string(listen_ip_), listen_port_))
 {
+  YET_LOG_DEBUG("RtmpServer() {}.", static_cast<void *>(this));
+}
+
+RtmpServer::~RtmpServer() {
+  YET_LOG_DEBUG("~RtmpServer() {}.", static_cast<void *>(this));
 }
 
 void RtmpServer::do_accept() {

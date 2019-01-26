@@ -1,10 +1,11 @@
 #include "http_flv_sub.h"
+#include <string>
+#include <asio.hpp>
 #include "http_flv_pull.h"
 #include "yet_group.h"
 #include "yet.hpp"
 #include "chef_base/chef_strings_op.hpp"
 #include "chef_base/chef_stuff_op.hpp"
-#include <string>
 
 #define SNIPPET_HANDLE_CB_ERROR if (ec) { YET_LOG_ERROR("ec:{}", ec.message()); return; }
 
@@ -15,11 +16,11 @@ HttpFlvSub::HttpFlvSub(asio::ip::tcp::socket socket, std::weak_ptr<HttpFlvSubObs
   , obs_(obs)
   , request_buf_(1024)
 {
-  YET_LOG_INFO("HttpFlvSub() {}.", static_cast<void *>(this));
+  YET_LOG_DEBUG("HttpFlvSub() {}.", static_cast<void *>(this));
 }
 
 HttpFlvSub::~HttpFlvSub() {
-  YET_LOG_INFO("~HttpFlvSub() {}.", static_cast<void *>(this));
+  YET_LOG_DEBUG("~HttpFlvSub() {}.", static_cast<void *>(this));
 }
 
 

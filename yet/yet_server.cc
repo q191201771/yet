@@ -1,4 +1,5 @@
 #include "yet_server.h"
+#include <asio.hpp>
 #include "rtmp_server.h"
 #include "http_flv_server.h"
 #include "yet_group.h"
@@ -29,6 +30,8 @@ void Server::dispose() {
   for (auto &it : live_name_2_group_) {
     it.second->dispose();
   }
+
+  io_ctx_.stop();
 }
 
 GroupPtr Server::get_or_create_group(const std::string &live_name) {

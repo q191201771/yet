@@ -1,6 +1,7 @@
 /**
  * @file   yet_group.h
  * @author pengrl
+ * @date   20190127
  *
  */
 
@@ -22,12 +23,14 @@ class Group : public std::enable_shared_from_this<Group> {
     void dispose();
 
     void set_http_flv_pull(HttpFlvPullPtr pull);
+    void reset_http_flv_pull();
     HttpFlvPullPtr get_http_flv_pull();
 
     void add_http_flv_sub(HttpFlvSubPtr sub);
     void del_http_flv_sub(HttpFlvSubPtr sub);
 
     void set_rtmp_pub(RtmpSessionPtr pub);
+    void reset_rtmp_pub();
 
     void add_rtmp_sub(RtmpSessionPtr sub);
     void del_rtmp_sub(RtmpSessionPtr sub);

@@ -1,6 +1,7 @@
 /**
  * @file   rtmp_chunk.h
  * @author pengrl
+ * @date   20190127
  *
  */
 
@@ -24,7 +25,7 @@ class RtmpChunk {
   public:
     RtmpChunk() {}
 
-    BufferPtr msg2chunks(BufferPtr msg, const RtmpHeader &rtmp_header, std::size_t chunk_size, std::size_t &rtmp_header_len /*out*/);
+    BufferPtr msg2chunks(BufferPtr msg, const RtmpHeader &rtmp_header, std::size_t chunk_size, bool abs);
 
     // deserialize
   private:

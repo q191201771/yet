@@ -1,6 +1,7 @@
 /**
  * @file   http_flv_server.h
  * @author pengrl
+ * @date   20190127
  *
  */
 
@@ -8,6 +9,7 @@
 
 #include <unordered_map>
 #include <string>
+#include <asio.hpp>
 #include "yet.hpp"
 #include "http_flv_sub.h"
 
@@ -18,7 +20,7 @@ class HttpFlvServer : public std::enable_shared_from_this<HttpFlvServer>
 {
   public:
     HttpFlvServer(asio::io_context &io_ctx, const std::string &listen_ip, uint16_t listen_port, Server *server);
-    virtual ~HttpFlvServer() {}
+    virtual ~HttpFlvServer();
 
     void start();
 

@@ -1,4 +1,6 @@
 #include "http_flv_server.h"
+#include <asio.hpp>
+#include "yet_config.h"
 #include "yet_server.h"
 #include "yet_group.h"
 #include "http_flv_sub.h"
@@ -14,6 +16,11 @@ HttpFlvServer::HttpFlvServer(asio::io_context &io_ctx, const std::string &listen
   , server_(server)
   , acceptor_(io_ctx_, asio::ip::tcp::endpoint(asio::ip::address_v4::from_string(listen_ip_), listen_port_))
 {
+  YET_LOG_DEBUG("HttpFlvServer() {}.", (void *)this);
+}
+
+HttpFlvServer::~HttpFlvServer() {
+  YET_LOG_DEBUG("~HttpFlvServer() {}.", (void *)this);
 }
 
 void HttpFlvServer::do_accept() {
@@ -52,7 +59,7 @@ void HttpFlvServer::on_http_flv_request(HttpFlvSubPtr sub, const std::string &ur
     YET_LOG_DEBUG("on_http_flv_request. {} in exist.", live_name);
   } else {
     YET_LOG_DEBUG("on_http_flv_request. {} create in.", live_name);
-    in = std::make_shared<HttpFlvPull>(io_ctx_, config.http_flv_pull_host(), uri);
+    in = std::make_shared<HttpFlvPull>(io_ctx_, Config::instance()->http_flv_pull_host(), uri);
     group->set_http_flv_pull(in);
   }
 

@@ -1,13 +1,15 @@
 /**
  * @file   rtmp_server.h
  * @author pengrl
+ * @date   20190127
  *
  */
 
 #pragma once
 
 #include <string>
-#include <yet.hpp>
+#include <asio.hpp>
+#include "yet.hpp"
 #include "rtmp_session.h"
 
 namespace yet {
@@ -17,6 +19,7 @@ class RtmpServer : public std::enable_shared_from_this<RtmpServer>
 {
   public:
     RtmpServer(asio::io_context &io_ctx, const std::string &listen_ip, uint16_t listen_port, Server *server);
+    ~RtmpServer();
 
     void start();
     void dispose();

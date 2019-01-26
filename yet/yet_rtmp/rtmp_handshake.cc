@@ -50,7 +50,7 @@ static bool rtmp_make_digest(const uint8_t *buf, std::size_t buf_len, const uint
                              const uint8_t *key, std::size_t key_len,
                              uint8_t *dst)
 {
-  YET_LOG_INFO("SHA256 key:{} len:{}", chef::stuff_op::bytes_to_hex(key, key_len, 16), key_len);
+  //YET_LOG_DEBUG("SHA256 key:{} len:{}", chef::stuff_op::bytes_to_hex(key, key_len, 16), key_len);
 
   HMACSHA256 crypto;
   crypto.init(key, key_len);
@@ -70,7 +70,7 @@ static bool rtmp_make_digest(const uint8_t *buf, std::size_t buf_len, const uint
       //uint8_t digest2[32];
       crypto.update(skip + RTMP_HANDSHAKE_KEYLEN, right_len);
     }
-    YET_LOG_INFO("SHA256 dst:{} len:{}", chef::stuff_op::bytes_to_hex(dst, 32, 16), 32);
+    //YET_LOG_INFO("SHA256 dst:{} len:{}", chef::stuff_op::bytes_to_hex(dst, 32, 16), 32);
 
   } else {
     //YET_LOG_INFO("SHA256 full:{} len:{}", chef::stuff_op::bytes_to_hex(buf, buf_len, 16), buf_len);
@@ -78,20 +78,20 @@ static bool rtmp_make_digest(const uint8_t *buf, std::size_t buf_len, const uint
     crypto.update(buf, buf_len);
     //uint8_t digest2[32];
     //cryptlite::hmac<cryptlite::sha256>::calc(buf, buf_len, key, key_len, dst);
-    YET_LOG_INFO("SHA256 dst:{} len:{}", chef::stuff_op::bytes_to_hex(dst, 32, 16), 32);
+    //YET_LOG_INFO("SHA256 dst:{} len:{}", chef::stuff_op::bytes_to_hex(dst, 32, 16), 32);
   }
 
   //HMAC_Final(hmac, dst, &len);
   //std::size_t dst_len;
   crypto.final(dst);
-  YET_LOG_INFO("SHA256 dst:{}", chef::stuff_op::bytes_to_hex(dst, 32, 16));
+  //YET_LOG_INFO("SHA256 dst:{}", chef::stuff_op::bytes_to_hex(dst, 32, 16));
   return true;
 }
 
 static int rtmp_find_digest(const uint8_t *buf, std::size_t buf_len, std::size_t base, const uint8_t *key, std::size_t key_len) {
   std::size_t offs = buf[base] + buf[base+1] + buf[base+2] + buf[base+3];
   offs = (offs % 728) + base + 4;
-  YET_LOG_INFO("CHEFGREPME offs:{}", offs);
+  //YET_LOG_INFO("CHEFGREPME offs:{}", offs);
   const uint8_t *skip = buf + offs;
 
   uint8_t digest[RTMP_HANDSHAKE_KEYLEN];
@@ -100,7 +100,7 @@ static int rtmp_find_digest(const uint8_t *buf, std::size_t buf_len, std::size_t
   }
 
   if (memcmp(digest, skip, RTMP_HANDSHAKE_KEYLEN) == 0) {
-    YET_LOG_INFO("CHEFGREPME bingo.");
+    //YET_LOG_INFO("CHEFGREPME bingo.");
     return offs;
   }
   return -1;
@@ -118,7 +118,7 @@ bool RtmpHandshake::rtmp_handshake_create_challenge(uint8_t *buf, std::size_t bu
   std::size_t offs = buf[8] + buf[9] + buf[10] + buf[11];
   offs = (offs % 728) + 12;
   uint8_t *skip = (uint8_t *)buf + offs;
-  YET_LOG_INFO("offs:{}", offs);
+  //YET_LOG_INFO("offs:{}", offs);
 
   if (!rtmp_make_digest((const uint8_t *)buf, buf_len-1, skip, key, key_len, skip)) {
     return false;
@@ -141,7 +141,7 @@ bool RtmpHandshake::rtmp_handshake_parse_challenge(const uint8_t *buf, std::size
   int ver;
   AmfOp::decode_int32(buf+4, 4, &ver, nullptr);
   if (ver == 0) {
-    YET_LOG_INFO("CHEFGREPME old style.");
+    YET_LOG_INFO("Rtmp handshake old style.");
     is_old_ = true;
     return true;
   }
@@ -152,12 +152,12 @@ bool RtmpHandshake::rtmp_handshake_parse_challenge(const uint8_t *buf, std::size
     offs = rtmp_find_digest((const uint8_t *)buf, buf_len-1, 8, peer_key, peer_key_len);
   }
   if (offs == -1) {
-    YET_LOG_INFO("CHEFNOTICEME CHEFGREPME old style.");
+    YET_LOG_INFO("Rtmp handshake old style.");
     is_old_ = true;
     return true;
   }
 
-  YET_LOG_INFO("CHEFGREPME new style. offs:{}", offs);
+  YET_LOG_INFO("Rtmp handshake new style. offs:{}", offs);
   is_old_ = false;
   // TODO random
 
@@ -166,7 +166,6 @@ bool RtmpHandshake::rtmp_handshake_parse_challenge(const uint8_t *buf, std::size
     YET_LOG_ERROR("CHEFGREPME Make s2 digest failed.");
     return false;
   }
-  YET_LOG_INFO("CHEFGREPME !!!");
 
   static constexpr std::size_t digest_pos = RTMP_S2_LEN - RTMP_HANDSHAKE_KEYLEN;
   if (!rtmp_make_digest((const uint8_t *)s2_, RTMP_S2_LEN, (const uint8_t *)s2_+digest_pos, digest, RTMP_HANDSHAKE_KEYLEN, (uint8_t *)s2_+ digest_pos)) {

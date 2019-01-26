@@ -5,8 +5,12 @@
 
 namespace yet {
 
-BufferPtr RtmpChunk::msg2chunks(BufferPtr msg, const RtmpHeader &rtmp_header, std::size_t chunk_size, std::size_t &rtmp_header_len) {
+BufferPtr RtmpChunk::msg2chunks(BufferPtr msg, const RtmpHeader &rtmp_header, std::size_t chunk_size, bool abs) {
   YET_LOG_ASSERT(rtmp_header.csid <= 65599, "Invalid csid when serialize chunk. {}", rtmp_header.csid);
+
+  if (!abs && has_prev_) {
+    abs = true;
+  }
 
   BufferPtr ret;
 
@@ -27,7 +31,7 @@ BufferPtr RtmpChunk::msg2chunks(BufferPtr msg, const RtmpHeader &rtmp_header, st
   std::size_t fmt = 0;
   uint32_t timestamp = rtmp_header.timestamp;
 
-  if (has_prev_) {
+  if (abs) {
     if (rtmp_header.msg_stream_id == prev_rtmp_header_.msg_stream_id) {
       fmt++;
       if (rtmp_header.msg_len == prev_rtmp_header_.msg_len && rtmp_header.msg_type_id == prev_rtmp_header_.msg_type_id) {
@@ -69,7 +73,7 @@ BufferPtr RtmpChunk::msg2chunks(BufferPtr msg, const RtmpHeader &rtmp_header, st
     p = AmfOp::encode_int32(p, timestamp);
   }
 
-  rtmp_header_len = p-header;
+  std::size_t rtmp_header_len = p-header;
   uint8_t *pos = msg->read_pos();
   for (std::size_t i = 0; i < num_of_chunk; i++) {
     ret->append(header, rtmp_header_len);

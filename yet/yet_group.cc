@@ -18,7 +18,11 @@ void Group::dispose() {
 
   for (auto &it : http_flv_subs_) { it->dispose(); }
 
+  http_flv_subs_.clear();
+
   for (auto &it : rtmp_subs_) { it->dispose(); }
+
+  http_flv_subs_.clear();
 }
 
 void Group::set_http_flv_pull(HttpFlvPullPtr pull) {
@@ -29,6 +33,10 @@ void Group::set_http_flv_pull(HttpFlvPullPtr pull) {
 void Group::set_rtmp_pub(RtmpSessionPtr pub) {
   pub->set_group(shared_from_this());
   rtmp_pub_ = pub;
+}
+
+void Group::reset_rtmp_pub() {
+  rtmp_pub_.reset();
 }
 
 HttpFlvPullPtr Group::get_http_flv_pull() {
@@ -73,30 +81,37 @@ BufferPtr Group::get_video_seq_header() {
 }
 
 void Group::on_rtmp_data(BufferPtr msg, const RtmpHeader &h) {
-  cache_avc_header(msg, h);
-
   for (auto sub : rtmp_subs_) {
-    if (false && !sub->has_sent_av()) {
-      if (avc_header_) {
-        sub->async_send(avc_header_);
-      }
+    if (!sub->has_sent_avc_header()) {
+      if (avc_header_) { sub->async_send(avc_header_); }
 
-      // to be continued
-      // abs type
-      sub->set_has_sent_av(true);
+      sub->set_has_sent_avc_header(true);
     }
 
-    std::size_t rtmp_header_len;
-    auto chunks = rtmp_chunk_.msg2chunks(msg, h, RTMP_LOCAL_CHUNK_SIZE, rtmp_header_len);
+    if (!sub->has_sent_key_frame()) {
+      if (h.msg_type_id == RTMP_MSG_TYPE_ID_AUDIO) {
+        //continue;
+      } else if (h.msg_type_id == RTMP_MSG_TYPE_ID_VIDEO) {
+        if (msg->readable_size() > 1 && msg->read_pos()[0] == 0x17) {
+          sub->set_has_sent_key_frame(true);
+        } else {
+          continue;
+        }
+      }
+    }
+
+    auto chunks = rtmp_chunk_.msg2chunks(msg, h, RTMP_LOCAL_CHUNK_SIZE, false);
     sub->async_send(chunks);
   }
+
+  cache_avc_header(msg, h);
 }
 
 void Group::cache_avc_header(BufferPtr msg, const RtmpHeader &h) {
   uint8_t *p = msg->read_pos();
   if (h.msg_type_id == RTMP_MSG_TYPE_ID_VIDEO && msg->readable_size() > 2 && p[0] == 0x17 && p[1] == 0x0) {
     YET_LOG_DEBUG("Cache avc header.");
-    avc_header_ = std::make_shared<Buffer>(*msg);
+    avc_header_ = rtmp_chunk_.msg2chunks(msg, h, RTMP_LOCAL_CHUNK_SIZE, false);
   }
 }
 

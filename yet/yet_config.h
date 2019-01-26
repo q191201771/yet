@@ -1,6 +1,7 @@
 /**
  * @file   yet_config.h
  * @author pengrl
+ * @date   20190127
  *
  */
 
@@ -9,15 +10,26 @@
 #include <string>
 #include "chef_base/chef_snippet.hpp"
 
+namespace yet {
+
 class Config {
   public:
-    //CHEF_PROPERTY_WITH_INIT_VALUE(uint16_t, rtmp_port, 0);
-    //CHEF_PROPERTY_WITH_INIT_VALUE(uint16_t, http_flv_port, 0);
-    CHEF_PROPERTY(std::string, http_flv_pull_host);
+    static Config *instance();
+
+    // just for mem check
+    static void dispose();
 
   public:
+    CHEF_PROPERTY(std::string, http_flv_pull_host);
+
+  private:
     Config() {}
   private:
     Config(const Config &) = delete;
     Config &operator=(const Config &) = delete;
+
+  private:
+    static Config *core_;
 };
+
+}

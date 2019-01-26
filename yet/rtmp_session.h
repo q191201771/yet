@@ -1,6 +1,7 @@
 /**
  * @file   rtmp_session.h
  * @author pengrl
+ * @date   20190127
  *
  */
 
@@ -8,6 +9,7 @@
 
 #include <memory>
 #include <queue>
+#include <asio.hpp>
 #include "yet.hpp"
 #include "chef_base/chef_snippet.hpp"
 #include "yet_rtmp/rtmp.hpp"
@@ -44,6 +46,9 @@ class RtmpSession : public std::enable_shared_from_this<RtmpSession> {
 
   public:
     void async_send(BufferPtr buf);
+
+  private:
+    void close();
 
   private:
     void do_read_c0c1();
@@ -107,7 +112,8 @@ class RtmpSession : public std::enable_shared_from_this<RtmpSession> {
     RtmpSession &operator=(const RtmpSession &) = delete;
 
   public:
-    CHEF_PROPERTY_WITH_INIT_VALUE(bool, has_sent_av, false);
+    CHEF_PROPERTY_WITH_INIT_VALUE(bool, has_sent_avc_header, false);
+    CHEF_PROPERTY_WITH_INIT_VALUE(bool, has_sent_key_frame, false);
 
   private:
     asio::ip::tcp::socket              socket_;

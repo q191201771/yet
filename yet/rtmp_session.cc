@@ -1,4 +1,5 @@
 #include "rtmp_session.h"
+#include <asio.hpp>
 #include "yet_group.h"
 #include "yet.hpp"
 #include "yet_rtmp/rtmp.hpp"
@@ -8,12 +9,13 @@
 
 namespace yet {
 
+//YET_LOG_DEBUG("{} len:{}", __func__, len);
 #define SNIPPET_ENTER_CB \
   do { \
     if (!ec) { \
-      YET_LOG_DEBUG("{} len:{}", __func__, len); \
     } else { \
       YET_LOG_ERROR("{} ec:{}, len:{}", __func__, ec.message(), len); \
+      close(); \
       return; \
     } \
   } while(0);
@@ -31,11 +33,11 @@ RtmpSession::RtmpSession(asio::ip::tcp::socket socket, std::weak_ptr<RtmpSession
   , write_buf_(RTMP_FIXED_WRITE_BUF_RESERVE_LEN)
   , complete_read_buf_(std::make_shared<Buffer>(RTMP_COMPLETE_MESSAGE_INIT_LEN, RTMP_COMPLETE_MESSAGE_SHRINK_LEN))
 {
-  YET_LOG_INFO("RtmpSession() {}.", static_cast<void *>(this));
+  YET_LOG_DEBUG("RtmpSession() {}.", static_cast<void *>(this));
 }
 
 RtmpSession::~RtmpSession() {
-  YET_LOG_INFO("~RtmpSession() {}.", static_cast<void *>(this));
+  YET_LOG_DEBUG("~RtmpSession() {}.", static_cast<void *>(this));
 }
 
 void RtmpSession::start() {
@@ -550,5 +552,12 @@ void RtmpSession::send_cb(const ErrorCode &ec, std::size_t len) {
   }
 }
 
+void RtmpSession::close() {
+  socket_.close();
+  if (auto group = group_.lock()) {
+         if (type_ == RTMP_SESSION_TYPE_PUB) { group->reset_rtmp_pub(); }
+    else if (type_ == RTMP_SESSION_TYPE_SUB) { group->del_rtmp_sub(shared_from_this()); }
+  }
+}
 
 } // namespace yet

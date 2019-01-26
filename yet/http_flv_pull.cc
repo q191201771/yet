@@ -1,4 +1,5 @@
 #include "http_flv_pull.h"
+#include <asio.hpp>
 #include "yet.hpp"
 #include "yet_group.h"
 #include "chef_base/chef_strings_op.hpp"
@@ -16,6 +17,8 @@ HttpFlvPull::HttpFlvPull(asio::io_context &io_context, const std::string &server
   , socket_(io_context)
   , in_buf_(std::make_shared<chef::buffer>(INIT_IN_BUFFER_LEN))
 {
+  YET_LOG_DEBUG("HttpFlvPull() {}.", (void *)this);
+
   std::ostream request_stream(&request_);
   request_stream << "GET " << path << " HTTP/1.0\r\n";
   //request_stream << "User-Agent: yet/0.0.1" << path << " HTTP/1.0\r\n";
@@ -26,6 +29,10 @@ HttpFlvPull::HttpFlvPull(asio::io_context &io_context, const std::string &server
   request_stream << "Icy-MetaData: 1\r\n\r\n";
 
   resolver_.async_resolve(server, "http", std::bind(&HttpFlvPull::resolve_cb, this, _1, _2));
+}
+
+HttpFlvPull::~HttpFlvPull() {
+  YET_LOG_DEBUG("~HttpFlvPull() {}.", (void *)this);
 }
 
 void HttpFlvPull::resolve_cb(const ErrorCode &ec, const asio::ip::tcp::resolver::results_type &endpoints) {
