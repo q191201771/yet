@@ -16,8 +16,21 @@
 
 ### 依赖
 
+所有依赖的第三方库都为头文件实现，已包含在 yet 中，不需要单独配置编译，直接可以使用
+
+* c++11 compiler
 * asio
 * spdlog
+
+### 我的环境
+
+```
+OS X EI Capitan 10.11.6
+Apple LLVM version 8.0.0 (clang-800.0.42.1)
+
+Linux xxx 2.6.32-642.15.1.el6.x86_64 #1 SMP Fri Feb 24 14:31:22 UTC 2017 x86_64 x86_64 x86_64 GNU/Linux
+gcc version 7.1.0 (GCC)
+```
 
 ### 其他
 

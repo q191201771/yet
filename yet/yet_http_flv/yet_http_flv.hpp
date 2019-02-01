@@ -1,7 +1,6 @@
 /**
  * @file   yet_http_flv.hpp
  * @author pengrl
- * @date   20190127
  *
  */
 

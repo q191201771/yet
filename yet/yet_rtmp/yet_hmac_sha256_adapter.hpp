@@ -1,7 +1,6 @@
 /**
  * @file   yet_hmac_sha256_adapter.hpp
  * @author pengrl
- * @date   20190127
  *
  */
 

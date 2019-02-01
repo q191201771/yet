@@ -1,7 +1,6 @@
 /**
  * @file   yet_rtmp_chunk_op.h
  * @author pengrl
- * @date   20190127
  *
  */
 

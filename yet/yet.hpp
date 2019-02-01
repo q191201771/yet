@@ -11,6 +11,7 @@
 #include <cstddef>
 #include "yet_common/yet_common.hpp"
 #include "yet_common/yet_log.h"
+#include <system_error>
 
 // config
 namespace yet {
@@ -29,6 +30,8 @@ static constexpr std::size_t BUF_SHRINK_LEN_RTMP_COMPLETE_MESSAGE   = 2147483647
 
 // const
 namespace yet {
+
+typedef std::error_code ErrorCode;
 
 class Server;
 class RtmpServer;

@@ -567,7 +567,9 @@ void RtmpSession::send_cb(const ErrorCode &ec, std::size_t len) {
 
 void RtmpSession::close() {
   socket_.close();
-  rtmp_session_close_cb_(shared_from_this());
+  if (rtmp_session_close_cb_) {
+    rtmp_session_close_cb_(shared_from_this());
+  }
 }
 
 RtmpStreamPtr RtmpSession::get_or_create_stream(int csid) {
@@ -590,6 +592,10 @@ void RtmpSession::set_rtmp_play_cb(RtmpEventCb cb) {
 
 void RtmpSession::set_rtmp_publish_stop_cb(RtmpEventCb cb) {
   rtmp_publish_stop_cb_ = cb;
+}
+
+void RtmpSession::set_rtmp_session_close(RtmpEventCb cb) {
+  rtmp_session_close_cb_ = cb;
 }
 
 void RtmpSession::set_rtmp_data_cb(RtmpDataCb cb) {

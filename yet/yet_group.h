@@ -1,7 +1,6 @@
 /**
  * @file   yet_group.h
  * @author pengrl
- * @date   20190127
  *
  */
 

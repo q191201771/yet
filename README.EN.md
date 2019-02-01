@@ -12,12 +12,22 @@ sub by http-flv, pull http-flv from others (e.g. another yet or other server whi
 
 pub by rtmp, sub by rtmp, link them and broadcast av data.
 
-### deps
+### dep
 
+all third party library are header-only, I've include them inside yet, which means we don't have to config or compile them, just using it directly.
+
+* c++11 compiler
 * asio
 * spdlog
 
-### others
+### env
+
+```
+OS X EI Capitan 10.11.6
+Apple LLVM version 8.0.0 (clang-800.0.42.1)
+```
+
+### other
 
 ![http_flv_sub_pull](./doc/http_flv_sub_pull.jpg)
 

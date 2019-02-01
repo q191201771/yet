@@ -1,7 +1,6 @@
 /**
  * @file   yet_http_flv_pull.h
  * @author pengrl
- * @date   20190127
  *
  */
 

@@ -1,7 +1,6 @@
 /**
  * @file   yet_log.h
  * @author pengrl
- * @date   20190127
  *
  */
 

@@ -6,14 +6,11 @@
 
 #pragma once
 
-#include <system_error>
 #include <functional>
 #include "chef_base/chef_buffer.hpp"
 #include "yet_common/yet_log.h"
 
 namespace yet {
-
-typedef std::error_code ErrorCode;
 
 typedef chef::buffer Buffer;
 typedef std::shared_ptr<Buffer> BufferPtr;
