@@ -1,5 +1,5 @@
 /**
- * @file   http_flv_pull.h
+ * @file   yet_http_flv_pull.h
  * @author pengrl
  * @date   20190127
  *
@@ -9,7 +9,7 @@
 
 #include <asio.hpp>
 #include "yet.hpp"
-#include "yet_http_flv/http_flv_buffer_t.hpp"
+#include "yet_http_flv/yet_http_flv_buffer_t.hpp"
 
 namespace yet {
 
@@ -36,6 +36,10 @@ class HttpFlvPull : public std::enable_shared_from_this<HttpFlvPull> {
 
   private:
     void flv_body_handler();
+
+  private:
+    HttpFlvPull(const HttpFlvPull &) = delete;
+    HttpFlvPull &operator=(const HttpFlvPull &) = delete;
 
   private:
     enum Stage {

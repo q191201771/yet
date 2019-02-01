@@ -1,4 +1,4 @@
-#include "rtmp_amf_op.h"
+#include "yet_rtmp_amf_op.h"
 #include <string.h>
 #include <stdlib.h>
 #include <sstream>
@@ -112,7 +112,7 @@ uint8_t *AmfOp::encode_ecma_array_end(uint8_t *out) {
   return encode_int24(out, Amf0DataType_OBJECT_END);
 }
 
-uint8_t *AmfOp::decode_boolean_with_type(const uint8_t *in, int valid_len, bool *out, int *used_len) {
+uint8_t *AmfOp::decode_boolean_with_type(const uint8_t *in, int valid_len, bool *out, std::size_t *used_len) {
   if (!in || valid_len < 2 || !out || *in != Amf0DataType_BOOLEAN) { return NULL; }
 
   *out = (*(in+1) == 0x01);
@@ -121,7 +121,7 @@ uint8_t *AmfOp::decode_boolean_with_type(const uint8_t *in, int valid_len, bool 
   return (uint8_t *)in+2;
 }
 
-uint8_t *AmfOp::decode_int16(const uint8_t *in, int valid_len, int32_t *out, int *used_len) {
+uint8_t *AmfOp::decode_int16(const uint8_t *in, int valid_len, int32_t *out, std::size_t *used_len) {
   if (!in || valid_len < 2 || !out) { return NULL; }
 
   uint8_t *p = (uint8_t *)out;
@@ -134,7 +134,7 @@ uint8_t *AmfOp::decode_int16(const uint8_t *in, int valid_len, int32_t *out, int
   return (uint8_t *)in+2;
 }
 
-uint8_t *AmfOp::decode_int24(const uint8_t *in, int valid_len, int32_t *out, int *used_len) {
+uint8_t *AmfOp::decode_int24(const uint8_t *in, int valid_len, int32_t *out, std::size_t *used_len) {
   if (!in || valid_len < 3 || !out) { return NULL; }
 
   uint8_t *p = (uint8_t *)out;
@@ -147,7 +147,7 @@ uint8_t *AmfOp::decode_int24(const uint8_t *in, int valid_len, int32_t *out, int
   return (uint8_t *)in+3;
 }
 
-uint8_t *AmfOp::decode_int32(const uint8_t *in, int valid_len, int32_t *out, int *used_len) {
+uint8_t *AmfOp::decode_int32(const uint8_t *in, int valid_len, int32_t *out, std::size_t *used_len) {
   if (!in || valid_len < 4 || !out) { return NULL; }
 
   uint8_t *p = (uint8_t *)out;
@@ -160,7 +160,7 @@ uint8_t *AmfOp::decode_int32(const uint8_t *in, int valid_len, int32_t *out, int
   return (uint8_t *)in+4;
 }
 
-uint8_t *AmfOp::decode_int32_le(const uint8_t *in, int valid_len, int32_t *out, int *used_len) {
+uint8_t *AmfOp::decode_int32_le(const uint8_t *in, int valid_len, int32_t *out, std::size_t *used_len) {
   if (!in || valid_len < 4 || !out) { return NULL; }
 
   uint8_t *p = (uint8_t *)out;
@@ -174,7 +174,7 @@ uint8_t *AmfOp::decode_int32_le(const uint8_t *in, int valid_len, int32_t *out, 
 }
 
 
-uint8_t *AmfOp::decode_number_with_type(const uint8_t *in, int valid_len, double *out, int *used_len) {
+uint8_t *AmfOp::decode_number_with_type(const uint8_t *in, int valid_len, double *out, std::size_t *used_len) {
   if (!in || valid_len < 9 || !out || (*in != Amf0DataType_NUMBER)) { return NULL; }
 
   uint8_t *p = (uint8_t *)out;
@@ -191,7 +191,7 @@ uint8_t *AmfOp::decode_number_with_type(const uint8_t *in, int valid_len, double
   return (uint8_t *)in+9;
 }
 
-uint8_t *AmfOp::decode_string(const uint8_t *in, int valid_len, char **out, int *str_len, int *used_len) {
+uint8_t *AmfOp::decode_string(const uint8_t *in, int valid_len, char **out, int *str_len, std::size_t *used_len) {
   if (!in || valid_len < 2 || !str_len) { return NULL; }
 
   *str_len = (in[0] << 8) + in[1];
@@ -203,7 +203,7 @@ uint8_t *AmfOp::decode_string(const uint8_t *in, int valid_len, char **out, int 
   return (uint8_t *)in + (*str_len) + 2;
 }
 
-uint8_t *AmfOp::decode_string_with_type(const uint8_t *in, int valid_len, char **out, int *str_len, int *used_len) {
+uint8_t *AmfOp::decode_string_with_type(const uint8_t *in, int valid_len, char **out, int *str_len, std::size_t *used_len) {
   if (!in || valid_len < 3 || !str_len) { return NULL; }
 
   if (in[0] != Amf0DataType_STRING) { return NULL; }
@@ -216,7 +216,7 @@ uint8_t *AmfOp::decode_string_with_type(const uint8_t *in, int valid_len, char *
   return ret;
 }
 
-uint8_t *AmfOp::decode_object(const uint8_t *in, int valid_len, AmfObjectItemMap *objs, int *used_len) {
+uint8_t *AmfOp::decode_object(const uint8_t *in, int valid_len, AmfObjectItemMap *objs, std::size_t *used_len) {
   if (!in) { return NULL; }
 
   uint8_t *p = (uint8_t *)in;
@@ -225,7 +225,7 @@ uint8_t *AmfOp::decode_object(const uint8_t *in, int valid_len, AmfObjectItemMap
   double number;
   bool b;
   std::string k;
-  int ul;
+  std::size_t ul;
   if (*p++ != Amf0DataType_OBJECT) { goto failed; }
 
   valid_len--;

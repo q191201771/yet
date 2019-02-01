@@ -1,7 +1,7 @@
 #include "yet_server.h"
 #include <asio.hpp>
-#include "rtmp_server.h"
-#include "http_flv_server.h"
+#include "yet_rtmp_server.h"
+#include "yet_http_flv_server.h"
 #include "yet_group.h"
 
 namespace yet {
@@ -40,9 +40,17 @@ GroupPtr Server::get_or_create_group(const std::string &live_name) {
     return iter->second;
   }
 
-  GroupPtr group = std::make_shared<Group>(live_name);
+  auto group = std::make_shared<Group>(live_name);
   live_name_2_group_[live_name] = group;
   return group;
+}
+
+GroupPtr Server::get_group(const std::string &live_name) {
+  auto iter = live_name_2_group_.find(live_name);
+  if (iter != live_name_2_group_.end()) {
+    return iter->second;
+  }
+  return nullptr;
 }
 
 }

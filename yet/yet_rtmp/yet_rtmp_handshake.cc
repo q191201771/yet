@@ -1,6 +1,6 @@
-#include "rtmp_handshake.h"
-#include "yet_rtmp/hmac_sha256_adapter.hpp"
-#include "yet_rtmp/rtmp_amf_op.h"
+#include "yet_rtmp_handshake.h"
+#include "yet_rtmp/yet_hmac_sha256_adapter.hpp"
+#include "yet_rtmp/yet_rtmp_amf_op.h"
 #include "chef_base/chef_stuff_op.hpp"
 
 namespace yet {

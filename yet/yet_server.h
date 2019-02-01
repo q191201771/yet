@@ -23,10 +23,14 @@ class Server {
     void dispose();
 
     GroupPtr get_or_create_group(const std::string &live_name);
+    GroupPtr get_group(const std::string &live_name);
 
   private:
-    Server(const Server &);
-    Server &operator=(const Server &);
+    Server(const Server &) = delete;
+    Server &operator=(const Server &) = delete;
+
+  private:
+    typedef std::unordered_map<std::string, GroupPtr> LiveName2Group;
 
   private:
     asio::io_context io_ctx_;

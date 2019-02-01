@@ -1,5 +1,5 @@
 /**
- * @file   rtmp_amf_op.h
+ * @file   yet_rtmp_amf_op.h
  * @author pengrl
  * @date   20190127
  *
@@ -180,19 +180,19 @@ namespace yet {
       /// @param valid_len if less than decode needed,return nullptr
       /// @param out deocoded data, alloc memory outside
       /// @param used_len used length of <in>, if caller don't care about it just set it nullptr
-      static uint8_t *decode_boolean_with_type(const uint8_t *in, int valid_len, bool *out, int *used_len);
-      static uint8_t *decode_number_with_type(const uint8_t *in, int valid_len, double *out, int *used_len);
-      static uint8_t *decode_int16(const uint8_t *in, int valid_len, int32_t *out, int *used_len);
-      static uint8_t *decode_int24(const uint8_t *in, int valid_len, int32_t *out, int *used_len);
-      static uint8_t *decode_int32(const uint8_t *in, int valid_len, int32_t *out, int *used_len);
-      static uint8_t *decode_int32_le(const uint8_t *in, int valid_len, int32_t *out, int *used_len);
+      static uint8_t *decode_boolean_with_type(const uint8_t *in, int valid_len, bool *out, std::size_t *used_len);
+      static uint8_t *decode_number_with_type(const uint8_t *in, int valid_len, double *out, std::size_t *used_len);
+      static uint8_t *decode_int16(const uint8_t *in, int valid_len, int32_t *out, std::size_t *used_len);
+      static uint8_t *decode_int24(const uint8_t *in, int valid_len, int32_t *out, std::size_t *used_len);
+      static uint8_t *decode_int32(const uint8_t *in, int valid_len, int32_t *out, std::size_t *used_len);
+      static uint8_t *decode_int32_le(const uint8_t *in, int valid_len, int32_t *out, std::size_t *used_len);
 
 
       // @NOTICE no memory copy, <out> point to some position after <in>
-      static uint8_t *decode_string(const uint8_t *in, int valid_len, char **out, int *str_len, int *used_len);
-      static uint8_t *decode_string_with_type(const uint8_t *in, int valid_len, char **out, int *str_len, int *used_len);
+      static uint8_t *decode_string(const uint8_t *in, int valid_len, char **out, int *str_len, std::size_t *used_len);
+      static uint8_t *decode_string_with_type(const uint8_t *in, int valid_len, char **out, int *str_len, std::size_t *used_len);
 
-      static uint8_t *decode_object(const uint8_t *in, int valid_len, AmfObjectItemMap *objs, int *used_len);
+      static uint8_t *decode_object(const uint8_t *in, int valid_len, AmfObjectItemMap *objs, std::size_t *used_len);
 
     private:
       AmfOp() = delete;

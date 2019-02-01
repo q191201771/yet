@@ -1,16 +1,12 @@
-#include "rtmp_chunk.h"
-#include "yet_rtmp/rtmp.hpp"
-#include "yet_rtmp/rtmp_amf_op.h"
+#include "yet_rtmp_chunk_op.h"
+#include "yet_rtmp/yet_rtmp.hpp"
+#include "yet_rtmp/yet_rtmp_amf_op.h"
 #include "chef_base/chef_stuff_op.hpp"
 
 namespace yet {
 
-BufferPtr RtmpChunk::msg2chunks(BufferPtr msg, const RtmpHeader &rtmp_header, std::size_t chunk_size, bool abs) {
+BufferPtr RtmpChunkOp::msg2chunks(BufferPtr msg, const RtmpHeader &rtmp_header, const RtmpHeader *prev, std::size_t chunk_size) {
   YET_LOG_ASSERT(rtmp_header.csid <= 65599, "Invalid csid when serialize chunk. {}", rtmp_header.csid);
-
-  if (!abs && has_prev_) {
-    abs = true;
-  }
 
   BufferPtr ret;
 
@@ -29,18 +25,20 @@ BufferPtr RtmpChunk::msg2chunks(BufferPtr msg, const RtmpHeader &rtmp_header, st
   uint8_t header[RTMP_MAX_HEADER_LEN];
   uint8_t *p = header;
   std::size_t fmt = 0;
-  uint32_t timestamp = rtmp_header.timestamp;
 
-  if (abs) {
-    if (rtmp_header.msg_stream_id == prev_rtmp_header_.msg_stream_id) {
+  uint32_t timestamp;
+  if (!prev) {
+    timestamp = rtmp_header.timestamp;
+  } else {
+    if (rtmp_header.msg_stream_id == prev->msg_stream_id) {
       fmt++;
-      if (rtmp_header.msg_len == prev_rtmp_header_.msg_len && rtmp_header.msg_type_id == prev_rtmp_header_.msg_type_id) {
+      if (rtmp_header.msg_len == prev->msg_len && rtmp_header.msg_type_id == prev->msg_type_id) {
         fmt++;
-        if (rtmp_header.timestamp == prev_rtmp_header_.timestamp) {
+        if (rtmp_header.timestamp == prev->timestamp) {
           fmt++;
         }
       }
-      timestamp = rtmp_header.timestamp - prev_rtmp_header_.timestamp;
+      timestamp = rtmp_header.timestamp - prev->timestamp;
     }
   }
 

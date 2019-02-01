@@ -1,6 +1,6 @@
-#include "rtmp_pack_op.h"
-#include "yet_rtmp/rtmp_amf_op.h"
-#include "rtmp.hpp"
+#include "yet_rtmp_pack_op.h"
+#include "yet_rtmp/yet_rtmp_amf_op.h"
+#include "yet_rtmp/yet_rtmp.hpp"
 #include <arpa/inet.h>
 #include <string.h>
 
@@ -75,6 +75,18 @@ uint8_t *RtmpPackOp::encode_user_control_ping_response(uint8_t *out, int timesta
   return out;
 }
 
+uint8_t *RtmpPackOp::encode_user_control_stream_begin(uint8_t *out) {
+  out = ENCODE_MESSAGE_HEADER(out, RTMP_CSID_PROTOCOL_CONTROL, 2, RTMP_MSG_TYPE_ID_USER_CONTROL, 0);
+  out = AmfOp::encode_int16(out, USER_CONTROL_EVENT_TYPE_STREAM_BEGIN);
+  return out;
+}
+
+uint8_t *RtmpPackOp::encode_user_control_stream_eof(uint8_t *out) {
+  out = ENCODE_MESSAGE_HEADER(out, RTMP_CSID_PROTOCOL_CONTROL, 2, RTMP_MSG_TYPE_ID_USER_CONTROL, 0);
+  out = AmfOp::encode_int16(out, USER_CONTROL_EVENT_TYPE_STREAM_EOF);
+  return out;
+}
+
 uint8_t *RtmpPackOp::encode_connect(uint8_t *out, int len, const char *app, const char *swf_url, const char *tc_url) {
   out = ENCODE_MESSAGE_HEADER(out, RTMP_CSID_OVER_CONNECTION, len-CHUNK_HEADER_SIZE_TYPE0, RTMP_MSG_TYPE_ID_COMMAND_MESSAGE_AMF0, 0);
 
@@ -145,12 +157,12 @@ uint8_t *RtmpPackOp::encode_create_stream(uint8_t *out) {
   return out;
 }
 
-uint8_t *RtmpPackOp::encode_create_stream_result(uint8_t *out, int transaction_id, int stream_id) {
+uint8_t *RtmpPackOp::encode_create_stream_result(uint8_t *out, int transaction_id) {
   out = ENCODE_MESSAGE_HEADER(out, RTMP_CSID_OVER_CONNECTION, 29, RTMP_MSG_TYPE_ID_COMMAND_MESSAGE_AMF0, 0);
   out = AmfOp::encode_string(out, "_result", 7);
   out = AmfOp::encode_number(out, transaction_id);
   out = AmfOp::encode_null(out);
-  out = AmfOp::encode_number(out, stream_id);
+  out = AmfOp::encode_number(out, RTMP_MSID);
   return out;
 }
 

@@ -1,5 +1,5 @@
 /**
- * @file   rtmp_server.h
+ * @file   yet_rtmp_server.h
  * @author pengrl
  * @date   20190127
  *
@@ -10,12 +10,11 @@
 #include <string>
 #include <asio.hpp>
 #include "yet.hpp"
-#include "rtmp_session.h"
+#include "yet_rtmp_session.h"
 
 namespace yet {
 
 class RtmpServer : public std::enable_shared_from_this<RtmpServer>
-                 , public RtmpSessionObserver
 {
   public:
     RtmpServer(asio::io_context &io_ctx, const std::string &listen_ip, uint16_t listen_port, Server *server);
@@ -25,8 +24,10 @@ class RtmpServer : public std::enable_shared_from_this<RtmpServer>
     void dispose();
 
   private:
-    virtual void on_rtmp_publish(RtmpSessionPtr session, const std::string &app, const std::string &live_name);
-    virtual void on_rtmp_play(RtmpSessionPtr session, const std::string &app, const std::string &live_name);
+    void on_rtmp_publish(RtmpSessionPtr session);
+    void on_rtmp_play(RtmpSessionPtr session);
+    void on_rtmp_publish_stop(RtmpSessionPtr session);
+    void on_rtmp_session_close(RtmpSessionPtr session);
 
   private:
     void do_accept();
@@ -38,8 +39,8 @@ class RtmpServer : public std::enable_shared_from_this<RtmpServer>
 
   private:
     asio::io_context        &io_ctx_;
-    std::string             listen_ip_;
-    uint16_t                listen_port_;
+    const std::string       listen_ip_;
+    const uint16_t          listen_port_;
     Server                  *server_;
     asio::ip::tcp::acceptor acceptor_;
 };

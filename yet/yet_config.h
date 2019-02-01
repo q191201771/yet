@@ -24,6 +24,7 @@ class Config {
 
   private:
     Config() {}
+
   private:
     Config(const Config &) = delete;
     Config &operator=(const Config &) = delete;

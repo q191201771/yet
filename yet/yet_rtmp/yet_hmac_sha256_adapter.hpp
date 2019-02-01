@@ -1,5 +1,5 @@
 /**
- * @file   hmac_sha256_adapter.hpp
+ * @file   yet_hmac_sha256_adapter.hpp
  * @author pengrl
  * @date   20190127
  *
@@ -72,7 +72,7 @@ class HMACSHA256 : public HMACSHA256_static<void> {
     HMACSHA256() {}
   private:
     HMACSHA256(const HMACSHA256 &) = delete;
-    const HMACSHA256 &operator=(const HMACSHA256 &) = delete;
+    HMACSHA256 &operator=(const HMACSHA256 &) = delete;
 
   private:
 #if defined(YET_HMAC_SHA256_OPENSSL)

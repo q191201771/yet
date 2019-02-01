@@ -1,5 +1,5 @@
 /**
- * @file   http_flv_buffer_t.hpp
+ * @file   yet_http_flv_buffer_t.hpp
  * @author pengrl
  * @date   20190127
  *
@@ -8,13 +8,10 @@
 #pragma once
 
 #include <sstream>
-#include "yet_http_flv/http_flv.hpp"
-#include "chef_base/chef_buffer.hpp"
+#include "yet_http_flv/yet_http_flv.hpp"
+#include "yet_common/yet_common.hpp"
 
 namespace yet {
-
-static constexpr std::size_t INIT_METADATA_BUFFER_LEN   = 4096;
-static constexpr std::size_t INIT_SEQ_HEADER_BUFFER_LEN = 4096;
 
 enum FlvTagType {
   FLVTAGTYPE_METADATA = FLV_TAG_HEADER_TYPE_SCRIPT_DATA,
@@ -50,9 +47,10 @@ static std::size_t get_prefix_extra(BufferPtr buf, const std::vector<FlvTagInfo>
 class TagCacheBase {
   public:
     TagCacheBase(bool keeping_update,
-                 std::size_t init_buf_len)
+                 std::size_t init_buf_len,
+                 std::size_t shrink_buf_len)
       : keeping_update_(keeping_update)
-      , buf_(std::make_shared<Buffer>(init_buf_len))
+      , buf_(std::make_shared<Buffer>(init_buf_len, shrink_buf_len))
     {}
 
     virtual ~TagCacheBase() {}
@@ -91,7 +89,7 @@ class TagCacheBase {
     BufferPtr buf() { return buf_; }
 
   private:
-    bool        keeping_update_;
+    const bool  keeping_update_;
     BufferPtr   buf_;
     bool        is_cached_ = false;
     std::size_t miss_len_ = 0;
@@ -99,7 +97,7 @@ class TagCacheBase {
 
 class TagCacheMetadata : public TagCacheBase {
   public:
-    TagCacheMetadata() : TagCacheBase(false, INIT_METADATA_BUFFER_LEN) {}
+    TagCacheMetadata() : TagCacheBase(false, BUF_INIT_LEN_METADATA, BUF_SHRINK_LEN_METADATA) {}
     virtual ~TagCacheMetadata() {}
 
     bool is_target_tag(const FlvTagInfo &ti) {
@@ -109,7 +107,7 @@ class TagCacheMetadata : public TagCacheBase {
 
 class TagCacheVideoSeqHeader : public TagCacheBase {
   public:
-    TagCacheVideoSeqHeader() : TagCacheBase(true, INIT_SEQ_HEADER_BUFFER_LEN) {}
+    TagCacheVideoSeqHeader() : TagCacheBase(true, BUF_INIT_LEN_METADATA, BUF_SHRINK_LEN_METADATA) {}
     virtual ~TagCacheVideoSeqHeader() {}
 
     bool is_target_tag(const FlvTagInfo &ti) {

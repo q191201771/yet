@@ -1,28 +1,34 @@
 /**
  * @file   yet.hpp
  * @author pengrl
- * @date   20190127
+ * @date   initial 20190127
  *
  */
 
 #pragma once
 
-#include <memory>
 #include <cinttypes>
 #include <cstddef>
-#include <unordered_map>
-#include "chef_base/chef_buffer.hpp"
-#include "yet_log.h"
+#include "yet_common/yet_common.hpp"
+#include "yet_common/yet_log.h"
 
+// config
 namespace yet {
 
-typedef std::error_code ErrorCode;
+static constexpr std::size_t BUF_INIT_LEN_HTTP_FLV_PULL_EACH_READ   = 16384;
+static constexpr std::size_t BUF_SHRINK_LEN_HTTP_FLV_PULL_EACH_READ = 2147483647;
+static constexpr std::size_t BUF_INIT_LEN_RTMP_EACH_READ            = 16384;
+static constexpr std::size_t BUF_SHRINK_LEN_RTMP_EACH_READ          = 2147483647;
+// @NOTICE len of rtmp-write only for non-av data
+static constexpr std::size_t BUF_INIT_LEN_RTMP_WRITE                = 4096;
+static constexpr std::size_t BUF_SHRINK_LEN_RTMP_WRITE              = 2147483647;
+static constexpr std::size_t BUF_INIT_LEN_RTMP_COMPLETE_MESSAGE     = 16384;
+static constexpr std::size_t BUF_SHRINK_LEN_RTMP_COMPLETE_MESSAGE   = 2147483647;
 
-typedef chef::buffer Buffer;
-typedef std::shared_ptr<Buffer> BufferPtr;
+}
 
-using std::placeholders::_1;
-using std::placeholders::_2;
+// const
+namespace yet {
 
 class Server;
 class RtmpServer;
@@ -31,6 +37,7 @@ class Group;
 class HttpFlvSub;
 class HttpFlvPull;
 class RtmpSession;
+struct RtmpStream;
 typedef std::shared_ptr<Server> ServerPtr;
 typedef std::shared_ptr<RtmpServer> RtmpServerPtr;
 typedef std::shared_ptr<HttpFlvServer> HttpFlvServerPtr;
@@ -38,7 +45,6 @@ typedef std::shared_ptr<Group> GroupPtr;
 typedef std::shared_ptr<HttpFlvSub> HttpFlvSubPtr;
 typedef std::shared_ptr<HttpFlvPull> HttpFlvPullPtr;
 typedef std::shared_ptr<RtmpSession> RtmpSessionPtr;
-
-typedef std::unordered_map<std::string, GroupPtr> LiveName2Group;
+typedef std::shared_ptr<RtmpStream> RtmpStreamPtr;
 
 }

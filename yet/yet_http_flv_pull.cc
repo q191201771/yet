@@ -1,4 +1,4 @@
-#include "http_flv_pull.h"
+#include "yet_http_flv_pull.h"
 #include <asio.hpp>
 #include "yet.hpp"
 #include "yet_group.h"
@@ -10,12 +10,10 @@
 
 namespace yet {
 
-static constexpr std::size_t INIT_IN_BUFFER_LEN         = 16384;
-
 HttpFlvPull::HttpFlvPull(asio::io_context &io_context, const std::string &server, const std::string &path)
   : resolver_(io_context)
   , socket_(io_context)
-  , in_buf_(std::make_shared<chef::buffer>(INIT_IN_BUFFER_LEN))
+  , in_buf_(std::make_shared<chef::buffer>(BUF_INIT_LEN_HTTP_FLV_PULL_EACH_READ, BUF_SHRINK_LEN_HTTP_FLV_PULL_EACH_READ))
 {
   YET_LOG_DEBUG("HttpFlvPull() {}.", (void *)this);
 
@@ -51,7 +49,7 @@ void HttpFlvPull::write_request_cb(const ErrorCode &ec) {
 }
 
 void HttpFlvPull::do_read_header_stuff() {
-  socket_.async_read_some(asio::buffer(in_buf_->write_pos(), INIT_IN_BUFFER_LEN),
+  socket_.async_read_some(asio::buffer(in_buf_->write_pos(), BUF_INIT_LEN_HTTP_FLV_PULL_EACH_READ),
                           std::bind(&HttpFlvPull::read_header_stuff_cb, shared_from_this(), _1, _2));
 }
 
@@ -116,7 +114,7 @@ void HttpFlvPull::read_header_stuff_cb(const ErrorCode &ec, std::size_t len) {
 }
 
 void HttpFlvPull::do_read_flv_body() {
-  std::size_t len = INIT_IN_BUFFER_LEN - in_buf_->readable_size();
+  std::size_t len = BUF_INIT_LEN_HTTP_FLV_PULL_EACH_READ - in_buf_->readable_size();
   in_buf_->reserve(len);
   socket_.async_read_some(asio::buffer(in_buf_->write_pos(), len), std::bind(&HttpFlvPull::read_flv_body_cb, shared_from_this(), _1, _2));
 }
@@ -176,7 +174,7 @@ void HttpFlvPull::flv_body_handler() {
   }
 
   BufferPtr ref_buffer = in_buf_;
-  in_buf_ = std::make_shared<Buffer>(INIT_IN_BUFFER_LEN);
+  in_buf_ = std::make_shared<Buffer>(BUF_INIT_LEN_HTTP_FLV_PULL_EACH_READ);
 
   if (substage_ == SUBSTAGE_TAG_HEADER && rs > 0) {
     YET_LOG_ASSERT(rs < FLV_TAG_HEADER_LEN + ENSURE_PREFIX_OF_VIDEO_DATA, "{}", rs);

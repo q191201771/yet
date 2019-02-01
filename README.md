@@ -1,17 +1,26 @@
-9102, Am I starting write a rtmp / http-flv server yet, hah?
+[English readme click me](./README.EN.md)
 
-### working
+都9102了，我要开始写一个 rtmp / http-flv 服务器——yet，哈哈
 
-#### 1. sub http-flv, pull http-flv
+欢迎star fork watch issue。
 
-sub by http-flv, pull http-flv from others (yet or other server which support http-flv play interface) while stream not exist.
+### 开发中
+
+#### 1. http-flv 播放， http-flv 回源
+
+使用 http-flv 播放，如果流不存在，上其他服务器（比如另一个 yet 或其他支持 http-flv 播放的服务器）
+
+#### 2. rtmp 转发
+
+使用 rtmp 推流， rtmp 播放，挂载它们，并进行音视频数据转发。
+
+### 依赖
+
+* asio
+* spdlog
+
+### 其他
 
 ![http_flv_sub_pull](./doc/http_flv_sub_pull.jpg)
-
-### roadmap
-
-#### 1. broadcast rtmp
-
-pub by rtmp, sub by rtmp, link them and broadcast av data.
 
 ![rtmp_broadcast](./doc/rtmp_broadcast.jpg)

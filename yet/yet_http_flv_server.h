@@ -1,5 +1,5 @@
 /**
- * @file   http_flv_server.h
+ * @file   yet_http_flv_server.h
  * @author pengrl
  * @date   20190127
  *
@@ -11,7 +11,7 @@
 #include <string>
 #include <asio.hpp>
 #include "yet.hpp"
-#include "http_flv_sub.h"
+#include "yet_http_flv_sub.h"
 
 namespace yet {
 
@@ -35,13 +35,13 @@ class HttpFlvServer : public std::enable_shared_from_this<HttpFlvServer>
                                      const std::string &live_name, const std::string &host);
 
   private:
-    HttpFlvServer(const HttpFlvServer &);
-    HttpFlvServer &operator=(const HttpFlvServer &);
+    HttpFlvServer(const HttpFlvServer &) = delete;
+    HttpFlvServer &operator=(const HttpFlvServer &) = delete;
 
   private:
     asio::io_context        &io_ctx_;
-    std::string             listen_ip_;
-    uint16_t                listen_port_;
+    const std::string       listen_ip_;
+    const uint16_t          listen_port_;
     Server                  *server_;
     asio::ip::tcp::acceptor acceptor_;
 };

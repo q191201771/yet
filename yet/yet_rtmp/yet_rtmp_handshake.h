@@ -1,5 +1,5 @@
 /**
- * @file   rtmp_handshake.h
+ * @file   yet_rtmp_handshake.h
  * @author pengrl
  * @date   20190127
  *
@@ -7,8 +7,8 @@
 
 #pragma once
 
-#include "yet.hpp"
-#include "rtmp.hpp"
+#include "yet_common/yet_common.hpp"
+#include "yet_rtmp/yet_rtmp.hpp"
 
 namespace yet {
 
