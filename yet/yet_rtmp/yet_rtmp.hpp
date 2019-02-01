@@ -98,7 +98,7 @@ struct RtmpStream {
   RtmpHeader  header;
   std::size_t msg_len;
   BufferPtr   msg;
-  uint32_t    timestamp_base;
+  uint32_t    timestamp_abs;
 };
 
 }

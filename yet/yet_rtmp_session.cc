@@ -134,6 +134,7 @@ void RtmpSession::read_cb(ErrorCode ec, std::size_t len) {
         if (readable_size < RTMP_FMT_2_MSG_HEADER_LEN[fmt]) { SNIPPET_KEEP_READ; }
 
         p = AmfOp::decode_int24(p, 3, (int *)&stream->header.timestamp, nullptr);
+        stream->timestamp_abs = stream->header.timestamp;
         p = AmfOp::decode_int24(p, 3, (int *)&stream->msg_len, nullptr);
         stream->header.msg_type_id = *p++;
         p = AmfOp::decode_int32_le(p, 4, (int *)&stream->header.msg_stream_id, nullptr);
@@ -141,12 +142,14 @@ void RtmpSession::read_cb(ErrorCode ec, std::size_t len) {
         if (readable_size < RTMP_FMT_2_MSG_HEADER_LEN[fmt]) { SNIPPET_KEEP_READ; }
 
         p = AmfOp::decode_int24(p, 3, (int *)&stream->header.timestamp, nullptr);
+        stream->timestamp_abs += stream->header.timestamp;
         p = AmfOp::decode_int24(p, 3, (int *)&stream->msg_len, nullptr);
         stream->header.msg_type_id = *p++;
       } else if (fmt == 2) {
         if (readable_size < RTMP_FMT_2_MSG_HEADER_LEN[fmt]) { SNIPPET_KEEP_READ; }
 
         p = AmfOp::decode_int24(p, 3, (int *)&stream->header.timestamp, nullptr);
+        stream->timestamp_abs += stream->header.timestamp;
       } else if (fmt == 3) {
         // noop
       }
@@ -160,6 +163,13 @@ void RtmpSession::read_cb(ErrorCode ec, std::size_t len) {
         if (readable_size < 4) { SNIPPET_KEEP_READ; }
 
         p = AmfOp::decode_int32(p, 4, (int *)&stream->header.timestamp, nullptr);
+        if (fmt == 0) {
+          stream->timestamp_abs = stream->header.timestamp;
+        } else if (fmt == 1 || fmt == 2) {
+          stream->timestamp_abs += stream->header.timestamp;
+        } else {
+          // noop
+        }
 
         readable_size -= 4;
       }
@@ -167,8 +177,8 @@ void RtmpSession::read_cb(ErrorCode ec, std::size_t len) {
       header_done_ = true;
       read_buf_.erase(basic_header_len + RTMP_FMT_2_MSG_HEADER_LEN[fmt] + (has_ext_ts ? 4 : 0));
 
-      //YET_LOG_DEBUG("Parsed chunk message header. msg_header_len:{}, timestamp:{}, msg_len:{}, msg_type_id:{}, msg_stream_id:{}",
-      //              RTMP_FMT_2_MSG_HEADER_LEN[fmt], stream->header.timestamp, stream->msg_len, stream->header.msg_type_id, stream->header.msg_stream_id);
+      //YET_LOG_DEBUG("Parsed chunk message header. msg_header_len:{}, timestamp:{} {}, msg_len:{}, msg_type_id:{}, msg_stream_id:{}",
+      //              RTMP_FMT_2_MSG_HEADER_LEN[fmt], stream->header.timestamp, stream->timestamp_abs, stream->msg_len, stream->header.msg_type_id, stream->header.msg_stream_id);
     }
 
     curr_stream_ = get_or_create_stream(curr_csid_);
@@ -222,24 +232,22 @@ void RtmpSession::complete_message_handler() {
     av_handler();
     break;
   default:
-    YET_LOG_ERROR("CHEFFUCKME. {}", curr_stream_->header.msg_type_id);
+    YET_LOG_ASSERT(0, "CHEFFUCKME. {}", curr_stream_->header.msg_type_id);
   }
 }
 
 void RtmpSession::av_handler() {
-  int timestamp_abs = (curr_stream_->timestamp_base == -1) ? curr_stream_->header.timestamp : (curr_stream_->timestamp_base + curr_stream_->header.timestamp);
-  //YET_LOG_DEBUG("-----Recvd {} {}. ts:{}, delta:{}, size:{}", curr_csid_, curr_stream_->header.msg_type_id, timestamp_abs, curr_stream_->header.timestamp, curr_stream_->msg->readable_size());
+  //YET_LOG_DEBUG("-----Recvd {} {}. ts:{} {}, size:{}", curr_csid_, curr_stream_->header.msg_type_id, curr_stream_->header.timestamp, curr_stream_->timestamp_abs, curr_stream_->msg->readable_size());
+
   RtmpHeader h;
   h.csid = curr_stream_->header.msg_type_id == RTMP_MSG_TYPE_ID_AUDIO ? RTMP_CSID_AUDIO : RTMP_CSID_VIDEO;
-  h.timestamp = timestamp_abs;
+  h.timestamp = curr_stream_->timestamp_abs;
   h.msg_len = curr_stream_->msg->readable_size();
   h.msg_type_id = curr_stream_->header.msg_type_id;
   h.msg_stream_id = RTMP_MSID;
   if (rtmp_data_cb_) {
     rtmp_data_cb_(shared_from_this(), curr_stream_->msg, h);
   }
-
-  curr_stream_->timestamp_base = timestamp_abs;
 }
 
 void RtmpSession::data_message_handler() {
