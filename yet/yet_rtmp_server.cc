@@ -14,11 +14,11 @@ RtmpServer::RtmpServer(asio::io_context &io_ctx, const std::string &listen_ip, u
   , server_(server)
   , acceptor_(io_ctx_, asio::ip::tcp::endpoint(asio::ip::address_v4::from_string(listen_ip_), listen_port_))
 {
-  YET_LOG_DEBUG("RtmpServer() {}.", static_cast<void *>(this));
+  YET_LOG_DEBUG("RtmpServer(). {}", static_cast<void *>(this));
 }
 
 RtmpServer::~RtmpServer() {
-  YET_LOG_DEBUG("~RtmpServer() {}.", static_cast<void *>(this));
+  YET_LOG_DEBUG("~RtmpServer(). {}", static_cast<void *>(this));
 }
 
 void RtmpServer::do_accept() {
@@ -27,7 +27,7 @@ void RtmpServer::do_accept() {
 
 void RtmpServer::accept_cb(ErrorCode ec, asio::ip::tcp::socket socket) {
   if (ec) {
-    YET_LOG_ERROR("Accept failed. ec:{}", ec.message());
+    YET_LOG_ERROR("rtmp server accept failed. ec:{}", ec.message());
     return;
   }
 
@@ -41,12 +41,12 @@ void RtmpServer::accept_cb(ErrorCode ec, asio::ip::tcp::socket socket) {
 }
 
 void RtmpServer::start() {
-  YET_LOG_INFO("Start rtmp server. port:{}", listen_port_);
+  YET_LOG_INFO("start rtmp server. {}:{}", listen_ip_, listen_port_);
   do_accept();
 }
 
 void RtmpServer::dispose() {
-  YET_LOG_INFO("Stop rtmp server listen.");
+  YET_LOG_INFO("dispose rtmp server.");
   acceptor_.close();
 }
 
@@ -64,7 +64,7 @@ void RtmpServer::on_rtmp_play(RtmpSessionPtr session) {
 void RtmpServer::on_rtmp_publish_stop(RtmpSessionPtr session) {
   auto group = server_->get_group(session->live_name());
   if (!group) {
-    YET_LOG_WARN("Group not exist while publish stop. {}", session->live_name());
+    YET_LOG_WARN("group not exist while publish stop. {}", session->live_name());
   }
   group->on_rtmp_publish_stop();
 }
@@ -72,7 +72,8 @@ void RtmpServer::on_rtmp_publish_stop(RtmpSessionPtr session) {
 void RtmpServer::on_rtmp_session_close(RtmpSessionPtr session) {
   auto group = server_->get_group(session->live_name());
   if (!group) {
-    YET_LOG_WARN("Group not exist while session close. {}", session->live_name());
+    YET_LOG_DEBUG("group not exist while session close. {}", session->live_name());
+    return;
   }
   group->on_rtmp_session_close(session);
 }

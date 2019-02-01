@@ -16,11 +16,11 @@ HttpFlvServer::HttpFlvServer(asio::io_context &io_ctx, const std::string &listen
   , server_(server)
   , acceptor_(io_ctx_, asio::ip::tcp::endpoint(asio::ip::address_v4::from_string(listen_ip_), listen_port_))
 {
-  YET_LOG_DEBUG("HttpFlvServer() {}.", (void *)this);
+  YET_LOG_DEBUG("HttpFlvServer(). {}", (void *)this);
 }
 
 HttpFlvServer::~HttpFlvServer() {
-  YET_LOG_DEBUG("~HttpFlvServer() {}.", (void *)this);
+  YET_LOG_DEBUG("~HttpFlvServer(). {}", (void *)this);
 }
 
 void HttpFlvServer::do_accept() {
@@ -29,7 +29,7 @@ void HttpFlvServer::do_accept() {
 
 void HttpFlvServer::accept_cb(const ErrorCode &ec, asio::ip::tcp::socket socket) {
   if (ec) {
-    YET_LOG_ERROR("Accept failed. ec:{}", ec.message());
+    YET_LOG_ERROR("http flv server accept failed. ec:{}", ec.message());
     return;
   }
 
@@ -40,12 +40,12 @@ void HttpFlvServer::accept_cb(const ErrorCode &ec, asio::ip::tcp::socket socket)
 }
 
 void HttpFlvServer::start() {
-  YET_LOG_INFO("Start http flv server. port:{}", listen_port_);
+  YET_LOG_INFO("start http flv server. {}:{}", listen_ip_, listen_port_);
   do_accept();
 }
 
 void HttpFlvServer::dispose() {
-  YET_LOG_INFO("Stop http flv server listen.");
+  YET_LOG_INFO("dispose http flv server.");
   acceptor_.close();
 }
 

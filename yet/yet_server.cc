@@ -11,10 +11,11 @@ Server::Server(const std::string &rtmp_listen_ip, uint16_t rtmp_listen_port,
   : rtmp_server_(std::make_shared<RtmpServer>(io_ctx_, rtmp_listen_ip, rtmp_listen_port, this))
   , http_flv_server_(std::make_shared<HttpFlvServer>(io_ctx_, http_flv_listen_ip, http_flv_listen_port, this))
 {
+  YET_LOG_DEBUG("Server(). {}", (void *)this);
 }
 
 Server::~Server() {
-  YET_LOG_DEBUG("~Server. {}", (void *)this);
+  YET_LOG_DEBUG("~Server(). {}", (void *)this);
 }
 
 void Server::run_loop() {

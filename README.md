@@ -32,6 +32,10 @@ Linux xxx 2.6.32-642.15.1.el6.x86_64 #1 SMP Fri Feb 24 14:31:22 UTC 2017 x86_64 
 gcc version 7.1.0 (GCC)
 ```
 
+### 性能
+
+TODO benchmark compare with  nginx-rtmp-module / srs / crtmpserver and other rtmp like server
+
 ### 其他
 
 ![http_flv_sub_pull](./doc/http_flv_sub_pull.jpg)

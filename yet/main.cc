@@ -18,6 +18,7 @@ std::shared_ptr<yet::Server> srv;
 
 int main(int argc, char **argv) {
   yet::Config::instance();
+  yet::Log::instance();
 
   if (argc != 5) {
     YET_LOG_ERROR("Usage: {} <rtmp port> <http flv port> <http flv pull host> <run duration sec>", argv[0]);
