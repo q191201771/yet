@@ -1,8 +1,10 @@
+# Yet - a high-performance rtmp / http-flv server
+
 9102, Am I starting write a rtmp / http-flv server yet, hah?
 
 all star fork watch issue are welcome.
 
-### working
+### ready to roll
 
 #### 1. sub http-flv, pull http-flv
 
@@ -11,6 +13,10 @@ sub by http-flv, pull http-flv from others (e.g. another yet or other server whi
 #### 2. broadcast rtmp
 
 pub by rtmp, sub by rtmp, link them and broadcast av data.
+
+### roadmap
+
+TODO
 
 ### dep
 
@@ -25,7 +31,14 @@ all third party library are header-only, I've include them inside yet, which mea
 ```
 OS X EI Capitan 10.11.6
 Apple LLVM version 8.0.0 (clang-800.0.42.1)
+
+Linux xxx 2.6.32-642.15.1.el6.x86_64 #1 SMP Fri Feb 24 14:31:22 UTC 2017 x86_64 x86_64 x86_64 GNU/Linux
+gcc version 7.1.0 (GCC)
 ```
+
+### benchmark
+
+compare with  nginx-rtmp-module / srs / crtmpserver and other rtmp like server
 
 ### other
 

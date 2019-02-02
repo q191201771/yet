@@ -1,10 +1,12 @@
+# Yet - a high-performance rtmp / http-flv server
+
 [English readme click me](./README.EN.md)
 
 都9102了，我要开始写一个 rtmp / http-flv 服务器——yet，哈哈
 
 欢迎star fork watch issue。
 
-### 开发中
+### 大体完成
 
 #### 1. http-flv 播放， http-flv 回源
 
@@ -13,6 +15,10 @@
 #### 2. rtmp 转发
 
 使用 rtmp 推流， rtmp 播放，挂载它们，并进行音视频数据转发。
+
+### 下一步开发路线图
+
+TODO
 
 ### 依赖
 
@@ -34,7 +40,7 @@ gcc version 7.1.0 (GCC)
 
 ### 性能
 
-TODO benchmark compare with  nginx-rtmp-module / srs / crtmpserver and other rtmp like server
+和 nginx-rtmp-module / srs / crtmpserver 或其他相似类型的服务器做比较
 
 ### 其他
 

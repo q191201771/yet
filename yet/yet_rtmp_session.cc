@@ -14,7 +14,10 @@ namespace yet {
     if (!ec) { \
     } else { \
       YET_LOG_ERROR("[{}] {} ec:{}, len:{}", (void *)this, __func__, ec.message(), len); \
-      close(); \
+      if (ec == asio::error::eof) { \
+        YET_LOG_INFO("[{}] close by peer.", (void *)this); \
+        close(); \
+      } \
       return; \
     } \
   } while(0);
@@ -567,6 +570,7 @@ void RtmpSession::send_cb(const ErrorCode &ec, std::size_t len) {
 }
 
 void RtmpSession::close() {
+  YET_LOG_DEBUG("[{}] close rtmp session.", (void *)this);
   socket_.close();
   if (rtmp_session_close_cb_) {
     rtmp_session_close_cb_(shared_from_this());
