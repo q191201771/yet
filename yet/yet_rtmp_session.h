@@ -37,7 +37,7 @@ class RtmpSession : public std::enable_shared_from_this<RtmpSession> {
     void set_rtmp_publish_cb(RtmpEventCb cb);
     void set_rtmp_play_cb(RtmpEventCb cb);
     void set_rtmp_publish_stop_cb(RtmpEventCb cb);
-    void set_rtmp_session_close(RtmpEventCb cb);
+    void set_rtmp_session_close_cb(RtmpEventCb cb);
     void set_rtmp_data_cb(RtmpDataCb cb);
 
     void start();
@@ -52,33 +52,22 @@ class RtmpSession : public std::enable_shared_from_this<RtmpSession> {
 
   private:
     void do_read_c0c1();
-    void read_c0c1_cb(ErrorCode ec, std::size_t len);
     void do_write_s0s1();
-    void write_s0s1_cb(ErrorCode ec, std::size_t len);
-    void do_read_c2();
     void do_write_s2();
-    void write_s2_cb(ErrorCode ec, std::size_t len);
-    void read_c2_cb(ErrorCode ec, std::size_t len);
+    void do_read_c2();
     void do_read();
     void read_cb(ErrorCode ec, std::size_t len);
     void do_write_win_ack_size();
-    void write_win_ack_size_cb(ErrorCode ec, std::size_t len);
     void do_write_peer_bandwidth();
-    void write_peer_bandwidth_cb(ErrorCode ec, std::size_t len);
     void do_write_chunk_size();
-    void write_chunk_size_cb(ErrorCode ec, std::size_t len);
     void do_write_connect_result();
-    void write_connect_result_cb(ErrorCode ec, std::size_t len);
     void do_write_create_stream_result();
-    void write_create_stream_result_cb(ErrorCode ec, std::size_t len);
 
   private:
     void do_write_on_status_publish();
-    void write_on_status_publish_cb(ErrorCode ec, std::size_t len);
 
   private:
     void do_write_on_status_play();
-    void write_on_status_play_cb(ErrorCode ec, std::size_t len);
 
   private:
     void complete_message_handler();
@@ -102,7 +91,6 @@ class RtmpSession : public std::enable_shared_from_this<RtmpSession> {
 
     void data_message_handler();
 
-  private:
     void av_handler();
 
   private:

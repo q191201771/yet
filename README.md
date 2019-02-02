@@ -1,10 +1,12 @@
-# Yet - a high-performance rtmp / http-flv server
+# Yet - rtmp / http-flv 服务器
 
 [English readme click me](./README.EN.md)
 
-都9102了，我要开始写一个 rtmp / http-flv 服务器——yet，哈哈
+都9102了，我要开始写一个 rtmp / http-flv 服务器了，哈哈。
 
 欢迎star fork watch issue。
+
+目标是实现一个高性能、可读可维护、模块化的流媒体服务器。
 
 ### 大体完成
 

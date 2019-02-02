@@ -1,6 +1,7 @@
 tmp
-/xcode
-/output
 /SECRET.md
 /diff.sh
+/xcode
+/output
 /yet/.root
+/conf/self.json.conf

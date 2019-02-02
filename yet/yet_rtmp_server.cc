@@ -35,7 +35,7 @@ void RtmpServer::accept_cb(ErrorCode ec, asio::ip::tcp::socket socket) {
   session->set_rtmp_publish_cb(std::bind(&RtmpServer::on_rtmp_publish, this, _1));
   session->set_rtmp_play_cb(std::bind(&RtmpServer::on_rtmp_play, this, _1));
   session->set_rtmp_publish_stop_cb(std::bind(&RtmpServer::on_rtmp_publish_stop, this, _1));
-  session->set_rtmp_session_close(std::bind(&RtmpServer::on_rtmp_session_close, this, _1));
+  session->set_rtmp_session_close_cb(std::bind(&RtmpServer::on_rtmp_session_close, this, _1));
   session->start();
 
   do_accept();

@@ -4,6 +4,8 @@
 
 all star fork watch issue are welcome.
 
+aim to make a high-performance, readable, maintainable, modular live-stream server.
+
 ### ready to roll
 
 #### 1. sub http-flv, pull http-flv

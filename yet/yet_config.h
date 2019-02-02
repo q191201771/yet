@@ -15,8 +15,16 @@ class Config {
   public:
     static Config *instance();
 
+    bool load_conf_file(const std::string &filename);
+
     // just for mem check
     static void dispose();
+
+  public:
+    CHEF_PROPERTY(std::string, rtmp_server_ip);
+    CHEF_PROPERTY(uint16_t, rtmp_server_port);
+    CHEF_PROPERTY(std::string, http_flv_server_ip);
+    CHEF_PROPERTY(uint16_t, http_flv_server_port);
 
   public:
     CHEF_PROPERTY(std::string, http_flv_pull_host);

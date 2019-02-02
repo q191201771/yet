@@ -17,35 +17,39 @@ std::shared_ptr<yet::Server> srv;
 //#endif
 
 int main(int argc, char **argv) {
-  yet::Config::instance();
-  yet::Log::instance();
-
-  if (argc != 5) {
-    YET_LOG_ERROR("Usage: {} <rtmp port> <http flv port> <http flv pull host> <run duration sec>", argv[0]);
+  if (argc != 2) {
+    fprintf(stderr, "Usage: %s <conf file>\n", argv[0]);
     return -1;
   }
-  uint16_t rtmp_port;
-  uint16_t http_flv_port;
-  rtmp_port = atoi(argv[1]);
-  http_flv_port = atoi(argv[2]);
-  yet::Config::instance()->set_http_flv_pull_host(argv[3]);
-  int run_duration_sec = atoi(argv[4]);
+
+  auto res = yet::Config::instance()->load_conf_file(argv[1]);
+  if (!res) {
+    return -1;
+  }
+
+  yet::Log::instance();
 
   YET_LOG_DEBUG("debug log.");
   YET_LOG_INFO("info log.");
   YET_LOG_WARN("warn log.");
   YET_LOG_ERROR("error log.");
-  YET_LOG_ASSERT(false, "assert log.");
+  YET_LOG_ASSERT(0, "assert log.");
 
 //#if defined(__linux__) || defined(__MACH__)
 //  signal(SIGINT, sig_handler);
 //  signal(SIGUSR1, sig_handler);
 //#endif
 
-  srv = std::make_shared<yet::Server>("0.0.0.0", rtmp_port, "0.0.0.0", http_flv_port);
+  srv = std::make_shared<yet::Server>(yet::Config::instance()->rtmp_server_ip(),
+                                      yet::Config::instance()->rtmp_server_port(),
+                                      yet::Config::instance()->http_flv_server_ip(),
+                                      yet::Config::instance()->http_flv_server_port());
+  int run_duration_sec = 0;
   std::thread thd([&] {
-    sleep(run_duration_sec);
-    srv->dispose();
+    if (run_duration_sec != 0) {
+      sleep(run_duration_sec);
+      srv->dispose();
+    }
   });
   srv->run_loop();
 

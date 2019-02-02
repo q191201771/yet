@@ -25,6 +25,6 @@ set(EXECUTABLE_OUTPUT_PATH ${PROJECT_BINARY_DIR}/bin)
 include_directories(yet)
 include_directories(third_party/asio-asio-1-12-2/asio/include)
 include_directories(third_party/spdlog-1.2.1/include)
-include_directories(third_party/cpp-cryptlite/include)
+include_directories(third_party/json-3-5-0/include)
 
 add_subdirectory(yet)
