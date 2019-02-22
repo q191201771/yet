@@ -36,22 +36,26 @@ class Group : public std::enable_shared_from_this<Group> {
     void del_rtmp_sub(RtmpSessionPtr sub);
 
     BufferPtr get_metadata();
-    BufferPtr get_video_seq_header();
+    BufferPtr get_avc_header();
+    BufferPtr get_aac_header();
 
+  public:
     void on_rtmp_publish();
     void on_rtmp_publish_stop();
 
   public:
     void on_http_flv_pull_connected();
     void on_http_flv_data(BufferPtr buf, const std::vector<FlvTagInfo> &tis);
+    void on_http_flv_close(HttpFlvSubPtr sub);
 
   public:
-    void on_rtmp_data(RtmpSessionPtr pub, BufferPtr msg, const RtmpHeader &h);
+    void on_rtmp_av_data(RtmpSessionPtr pub, BufferPtr msg, const RtmpHeader &h);
+    void on_rtmp_meta_data(RtmpSessionPtr pub, BufferPtr msg, uint8_t *meta_pos, std::size_t meta_size, AmfObjectItemMapPtr meta);
     void on_rtmp_session_close(RtmpSessionPtr session);
 
   private:
-    void cache_avc_header(BufferPtr msg, const RtmpHeader &h);
-    void cache_aac_header(BufferPtr msg, const RtmpHeader &h);
+    void cache_rtmp_avc_header(BufferPtr msg, const RtmpHeader &h);
+    void cache_rtmp_aac_header(BufferPtr msg, const RtmpHeader &h);
 
   private:
     Group(const Group &) = delete;
@@ -65,8 +69,9 @@ class Group : public std::enable_shared_from_this<Group> {
     std::unordered_set<RtmpSessionPtr> rtmp_subs_;
     RtmpHeader                         *prev_audio_header_=nullptr;
     RtmpHeader                         *prev_video_header_=nullptr;
-    BufferPtr                          avc_header_;
-    BufferPtr                          aac_header_;
+    BufferPtr                          rtmp_avc_header_;
+    BufferPtr                          rtmp_aac_header_;
+    BufferPtr                          rtmp_metadata_;
 };
 
 }

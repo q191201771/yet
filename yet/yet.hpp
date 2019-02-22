@@ -50,4 +50,7 @@ typedef std::shared_ptr<HttpFlvPull> HttpFlvPullPtr;
 typedef std::shared_ptr<RtmpSession> RtmpSessionPtr;
 typedef std::shared_ptr<RtmpStream> RtmpStreamPtr;
 
+class AmfObjectItemMap;
+typedef std::shared_ptr<AmfObjectItemMap> AmfObjectItemMapPtr;
+
 }

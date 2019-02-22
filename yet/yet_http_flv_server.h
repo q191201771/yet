@@ -15,7 +15,6 @@
 namespace yet {
 
 class HttpFlvServer : public std::enable_shared_from_this<HttpFlvServer>
-                    , public HttpFlvSubObserver
 {
   public:
     HttpFlvServer(asio::io_context &io_ctx, const std::string &listen_ip, uint16_t listen_port, Server *server);
@@ -30,8 +29,8 @@ class HttpFlvServer : public std::enable_shared_from_this<HttpFlvServer>
     void accept_cb(const ErrorCode &ec, asio::ip::tcp::socket socket);
 
   private:
-    virtual void on_http_flv_request(HttpFlvSubPtr sub, const std::string &uri, const std::string &app_name,
-                                     const std::string &live_name, const std::string &host);
+    void on_http_flv_request(HttpFlvSubPtr sub, const std::string &uri, const std::string &app_name,
+                             const std::string &live_name, const std::string &host);
 
   private:
     HttpFlvServer(const HttpFlvServer &) = delete;

@@ -26,19 +26,21 @@ enum RtmpSessionType {
 
 class RtmpSession : public std::enable_shared_from_this<RtmpSession> {
   public:
-    explicit RtmpSession(asio::ip::tcp::socket socket);
-    ~RtmpSession();
+    typedef std::function<void(RtmpSessionPtr session)> RtmpEventCb;
+    typedef std::function<void(RtmpSessionPtr session, BufferPtr buf, uint8_t *meta_pos, std::size_t meta_size, AmfObjectItemMapPtr)> RtmpMetaDataCb;
+    typedef std::function<void(RtmpSessionPtr session, BufferPtr buf, const RtmpHeader &header)> RtmpAvDataCb;
 
   public:
-    typedef std::function<void(RtmpSessionPtr session)> RtmpEventCb;
-    typedef std::function<void(RtmpSessionPtr session, BufferPtr buf, const RtmpHeader &header)> RtmpDataCb;
+    explicit RtmpSession(asio::ip::tcp::socket socket);
+    ~RtmpSession();
 
   public:
     void set_rtmp_publish_cb(RtmpEventCb cb);
     void set_rtmp_play_cb(RtmpEventCb cb);
     void set_rtmp_publish_stop_cb(RtmpEventCb cb);
     void set_rtmp_session_close_cb(RtmpEventCb cb);
-    void set_rtmp_data_cb(RtmpDataCb cb);
+    void set_rtmp_meta_data_cb(RtmpMetaDataCb cb);
+    void set_rtmp_av_data_cb(RtmpAvDataCb cb);
 
     void start();
 
@@ -82,10 +84,6 @@ class RtmpSession : public std::enable_shared_from_this<RtmpSession> {
     void publish_handler(double transaction_id, uint8_t *buf, std::size_t len);
     void play_handler(double transaction_id, uint8_t *buf, std::size_t len);
     void delete_stream_handler(double transaction_id, uint8_t *buf, std::size_t len);
-    //void release_stream_handler(double transaction_id, uint8_t *buf, std::size_t len);
-    //void fcpublish_handler(double transaction_id, uint8_t *buf, std::size_t len);
-    //void fcsubscribe_handler(double transaction_id, uint8_t *buf, std::size_t len);
-    //void fcunpublish_handler(double transaction_id, uint8_t *buf, std::size_t len);
 
     void user_control_message_handler();
 
@@ -110,6 +108,7 @@ class RtmpSession : public std::enable_shared_from_this<RtmpSession> {
     CHEF_PROPERTY_WITH_INIT_VALUE(RtmpSessionType, type, RTMP_SESSION_TYPE_UNKNOWN);
 
   public:
+    CHEF_PROPERTY_WITH_INIT_VALUE(bool, has_sent_metadata, false);
     CHEF_PROPERTY_WITH_INIT_VALUE(bool, has_sent_audio, false);
     CHEF_PROPERTY_WITH_INIT_VALUE(bool, has_sent_video, false);
     CHEF_PROPERTY_WITH_INIT_VALUE(bool, has_sent_key_frame, false);
@@ -134,7 +133,8 @@ class RtmpSession : public std::enable_shared_from_this<RtmpSession> {
     RtmpEventCb           rtmp_play_cb_;
     RtmpEventCb           rtmp_publish_stop_cb_;
     RtmpEventCb           rtmp_session_close_cb_;
-    RtmpDataCb            rtmp_data_cb_;
+    RtmpMetaDataCb        rtmp_meta_data_cb_;
+    RtmpAvDataCb          rtmp_av_data_cb_;
 };
 
 }

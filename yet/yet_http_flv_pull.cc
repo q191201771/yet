@@ -184,23 +184,28 @@ void HttpFlvPull::flv_body_handler() {
 
   //YET_LOG_DEBUG("on_http_flv_data {} {}", chef::stringify_stl(tis), ref_buffer->readable_size());
   if (ref_buffer->readable_size()) {
-    tcmd_.on_buffer(ref_buffer, tis);
-    tcvsh_.on_buffer(ref_buffer, tis);
-
     if (auto group = group_.lock()) {
       group->on_http_flv_data(ref_buffer, tis);
     }
+
+    cache_meta_data_.on_buffer(ref_buffer, tis);
+    cache_avc_header_.on_buffer(ref_buffer, tis);
+    cache_aac_header_.on_buffer(ref_buffer, tis);
   }
 
   do_read_flv_body();
 }
 
 BufferPtr HttpFlvPull::get_metadata() {
-  return tcmd_.buf();
+  return cache_meta_data_.buf();
 }
 
-BufferPtr HttpFlvPull::get_video_seq_header() {
-  return tcvsh_.buf();
+BufferPtr HttpFlvPull::get_avc_header() {
+  return cache_avc_header_.buf();
+}
+
+BufferPtr HttpFlvPull::get_aac_header() {
+  return cache_aac_header_.buf();
 }
 
 void HttpFlvPull::set_group(std::weak_ptr<Group> group) {

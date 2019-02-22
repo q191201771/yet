@@ -33,7 +33,8 @@ void HttpFlvServer::accept_cb(const ErrorCode &ec, asio::ip::tcp::socket socket)
     return;
   }
 
-  auto pull = std::make_shared<HttpFlvSub>(std::move(socket), shared_from_this());
+  auto pull = std::make_shared<HttpFlvSub>(std::move(socket));
+  pull->set_sub_cb(std::bind(&HttpFlvServer::on_http_flv_request, this, _1, _2, _3, _4, _5));
   pull->start();
 
   do_accept();

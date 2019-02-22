@@ -8,7 +8,8 @@
 
 #include <inttypes.h>
 #include <assert.h>
-#include <map>
+#include <unordered_map>
+#include <list>
 #include <string>
 #include <sstream>
 
@@ -19,17 +20,17 @@ namespace yet {
     Amf0DataType_BOOLEAN      = 0x01,
     Amf0DataType_STRING       = 0x02,
     Amf0DataType_OBJECT       = 0x03,
-    Amf0DataType_MOVIECLIP    = 0x04,
+    Amf0DataType_MOVIECLIP    = 0x04, // reserved
     Amf0DataType_NULL         = 0x05,
     Amf0DataType_UNDEFINED    = 0x06,
-    Amf0DataType_REFERENCE    = 0x07,
+    Amf0DataType_REFERENCE    = 0x07, //
     Amf0DataType_ECMA_ARRAY   = 0x08,
     Amf0DataType_OBJECT_END   = 0x09,
-    Amf0DataType_STRICT_ARRAY = 0x0A,
-    Amf0DataType_DATE         = 0x0B,
+    Amf0DataType_STRICT_ARRAY = 0x0A, //
+    Amf0DataType_DATE         = 0x0B, //
     Amf0DataType_LONG_STRING  = 0x0C,
     Amf0DataType_UNSUPPORTED  = 0x0D,
-    Amf0DataType_RECORDSET    = 0x0E,
+    Amf0DataType_RECORDSET    = 0x0E, // reserved
     Amf0DataType_XML_DOCUMENT = 0x0F,
     Amf0DataType_TYPED_OBJECT = 0x10,
   }; // enum Amf0DataType
@@ -47,13 +48,13 @@ namespace yet {
       bool is_boolean() { return type_ == Amf0ObjectValueType_BOOLEAN; }
       bool is_number() { return type_ == Amf0ObjectValueType_NUMBER; }
       bool is_string() { return type_ == Amf0ObjectValueType_STRING; }
-      virtual bool get_boolean() { assert(0);return false; }
-      virtual double get_number() { assert(0);return 0; }
-      virtual std::string get_string() { assert(0);return std::string(); }
+      virtual bool get_boolean() { assert(0); return false; }
+      virtual double get_number() { assert(0); return 0; }
+      virtual std::string get_string() { assert(0); return std::string(); }
       virtual void set_boolean(bool) { assert(0); }
       virtual void set_number(double) { assert(0); }
       virtual void set_string(const std::string &) { assert(0); }
-      virtual std::string stringify() { assert(0);return std::string(); }
+      virtual std::string stringify() { assert(0); return std::string(); }
 
     private:
       Amf0ObjectValueType type_;
@@ -105,13 +106,16 @@ namespace yet {
       /// @return true if exist, otherwise false
       AmfObjectItem *get(const std::string &name);
 
+      std::list<std::pair<std::string, AmfObjectItem *> > &get_list();
+
       std::size_t size() const { return objs_.size(); }
       std::string stringify();
 
       void clear();
 
     private:
-      std::map<std::string, AmfObjectItem *> objs_;
+      std::unordered_map<std::string, std::list<std::pair<std::string, AmfObjectItem *> >::iterator> objs_;
+      std::list<std::pair<std::string, AmfObjectItem *> > list_;
   }; // class AmfObjectItemMap
 
   class AmfOp {
@@ -140,9 +144,7 @@ namespace yet {
       static int encode_string_reserve(int val_len) { return (val_len < 65536) ? (val_len+1+2) : (val_len+1+4); }
       static int encode_object_named_boolean_reserve(int name_len) { return 2+name_len+ENCODE_BOOLEAN_RESERVE; }
       static int encode_object_named_number_reserve(int name_len) { return 2+name_len+ENCODE_NUMBER_RESERVE; }
-      static int encode_object_named_string_reserve(int name_len, int val_len) {
-        return 2+name_len+encode_string_reserve(val_len);
-      }
+      static int encode_object_named_string_reserve(int name_len, int val_len) { return 2+name_len+encode_string_reserve(val_len); }
 
     public:
       /// @param <out> alloc outside, call xxx_reserve above if you not sure how big you need
@@ -162,7 +164,7 @@ namespace yet {
       static uint8_t *encode_object_named_string(uint8_t *out, const char *name, int name_len, const char *val, int val_len);
       static uint8_t *encode_object_end(uint8_t *out);
 
-      static uint8_t *encode_ecma_array_begin(uint8_t *out, int array_len);
+      static uint8_t *encode_ecma_array_begin(uint8_t *out, uint32_t array_len);
       static uint8_t *encode_ecma_array_named_boolean(uint8_t *out, const char *name, int name_len, double val) {
         return encode_object_named_boolean(out, name, name_len, val);
       }
@@ -176,22 +178,23 @@ namespace yet {
 
     public:
       /// @param in won't mod it inside func
-      /// @param valid_len if less than decode needed,return nullptr
+      /// @param valid_len if less than decode needed, return nullptr
       /// @param out deocoded data, alloc memory outside
       /// @param used_len used length of <in>, if caller don't care about it just set it nullptr
-      static uint8_t *decode_boolean_with_type(const uint8_t *in, int valid_len, bool *out, std::size_t *used_len);
-      static uint8_t *decode_number_with_type(const uint8_t *in, int valid_len, double *out, std::size_t *used_len);
-      static uint8_t *decode_int16(const uint8_t *in, int valid_len, int32_t *out, std::size_t *used_len);
-      static uint8_t *decode_int24(const uint8_t *in, int valid_len, int32_t *out, std::size_t *used_len);
-      static uint8_t *decode_int32(const uint8_t *in, int valid_len, int32_t *out, std::size_t *used_len);
-      static uint8_t *decode_int32_le(const uint8_t *in, int valid_len, int32_t *out, std::size_t *used_len);
+      static uint8_t *decode_boolean_with_type(const uint8_t *in, std::size_t valid_len, bool *out, std::size_t *used_len);
+      static uint8_t *decode_number_with_type(const uint8_t *in, std::size_t valid_len, double *out, std::size_t *used_len);
+      static uint8_t *decode_int16(const uint8_t *in, std::size_t valid_len, int32_t *out, std::size_t *used_len);
+      static uint8_t *decode_int24(const uint8_t *in, std::size_t valid_len, int32_t *out, std::size_t *used_len);
+      static uint8_t *decode_int32(const uint8_t *in, std::size_t valid_len, int32_t *out, std::size_t *used_len);
+      static uint8_t *decode_int32_le(const uint8_t *in, std::size_t valid_len, int32_t *out, std::size_t *used_len);
 
 
       // @NOTICE no memory copy, <out> point to some position after <in>
-      static uint8_t *decode_string(const uint8_t *in, int valid_len, char **out, int *str_len, std::size_t *used_len);
-      static uint8_t *decode_string_with_type(const uint8_t *in, int valid_len, char **out, int *str_len, std::size_t *used_len);
+      static uint8_t *decode_string(const uint8_t *in, std::size_t valid_len, char **out, int *str_len, std::size_t *used_len);
+      static uint8_t *decode_string_with_type(const uint8_t *in, std::size_t valid_len, char **out, int *str_len, std::size_t *used_len);
 
-      static uint8_t *decode_object(const uint8_t *in, int valid_len, AmfObjectItemMap *objs, std::size_t *used_len);
+      static uint8_t *decode_object(const uint8_t *in, std::size_t valid_len, AmfObjectItemMap *objs, std::size_t *used_len);
+      static uint8_t *decode_ecma_array(const uint8_t *in, std::size_t valid_len, AmfObjectItemMap *objs, std::size_t *used_len);
 
     private:
       AmfOp() = delete;

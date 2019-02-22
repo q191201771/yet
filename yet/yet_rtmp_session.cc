@@ -309,34 +309,6 @@ void RtmpSession::command_message_handler() {
   }
 }
 
-//void RtmpSession::fcunpublish_handler(double transaction_id, uint8_t *buf, std::size_t len) {
-//}
-
-//void RtmpSession::fcpublish_handler(double transaction_id, uint8_t *buf, std::size_t len) {
-//  YET_LOG_ASSERT(transaction_id == RTMP_TRANSACTION_ID_FC_PUBLISH, "Invalid transaction_id while read fcpublish.")
-//  buf++;
-//  len--;
-//  char *name;
-//  int name_len;
-//  AmfOp::decode_string_with_type(buf, len, &name, &name_len, nullptr);
-//  YET_LOG_INFO("---->FCPublish(\'{}\')", std::string(name, name_len));
-//}
-
-//void RtmpSession::release_stream_handler(double transaction_id, uint8_t *buf, std::size_t len) {
-//  YET_LOG_ASSERT(transaction_id == RTMP_TRANSACTION_ID_RELEASE_STREAM, "Invalid transaction_id while read release stream.")
-//  buf++;
-//  len--;
-//  char *name;
-//  int name_len;
-//  AmfOp::decode_string_with_type(buf, len, &name, &name_len, nullptr);
-//  YET_LOG_INFO("---->releaseStream(\'{}\')", std::string(name, name_len));
-//}
-
-//void RtmpSession::fcsubscribe_handler(double transaction_id, uint8_t *buf, std::size_t len) {
-//  YET_LOG_INFO("----->FCSubscribe()");
-//  YET_LOG_WARN("");
-//}
-
 void RtmpSession::connect_handler(double transaction_id, uint8_t *buf, std::size_t len) {
   YET_LOG_ASSERT(transaction_id == RTMP_TRANSACTION_ID_CONNECT, "invalid transaction_id while rtmp connect. {}", transaction_id)
 
@@ -539,7 +511,36 @@ void RtmpSession::user_control_message_handler() {
 
 void RtmpSession::data_message_handler() {
   // 7.1.2.
-  YET_LOG_WARN("[{}] recvd data message, ignore it.", (void *)this);
+
+  uint8_t *p = curr_stream_->msg->read_pos();
+  auto len = curr_stream_->msg->readable_size();
+
+  char *val;
+  int val_len;
+  std::size_t used_len;
+  p = AmfOp::decode_string_with_type(p, len, &val, &val_len, &used_len);
+  YET_LOG_ASSERT(p, "decode metadata failed.");
+  if (strncmp(val, "@setDataFrame", val_len) != 0) {
+    YET_LOG_ERROR("invalid data message. {}", std::string(val, val_len));
+    return;
+  }
+  len -= used_len;
+  uint8_t *meta_pos = p;
+  std::size_t meta_size = len;
+  p = AmfOp::decode_string_with_type(p, len, &val, &val_len, &used_len);
+  YET_LOG_ASSERT(p, "decode metadata failed.");
+  if (strncmp(val, "onMetaData", val_len) != 0) {
+    YET_LOG_ERROR("invalid data message. {}", std::string(val, val_len));
+    return;
+  }
+  len -= used_len;
+  std::shared_ptr<AmfObjectItemMap> metadata = std::make_shared<AmfObjectItemMap>();
+  p = AmfOp::decode_ecma_array(p, len, metadata.get(), nullptr);
+  YET_LOG_ASSERT(p, "decode metadata failed.");
+  YET_LOG_DEBUG("ts:{}, type id:{}, {}", curr_stream_->timestamp_abs, curr_stream_->header.msg_type_id, metadata->stringify());
+  if (rtmp_meta_data_cb_) {
+    rtmp_meta_data_cb_(shared_from_this(), curr_stream_->msg, meta_pos, meta_size, metadata);
+  }
 }
 
 void RtmpSession::av_handler() {
@@ -551,8 +552,8 @@ void RtmpSession::av_handler() {
   h.msg_len = curr_stream_->msg->readable_size();
   h.msg_type_id = curr_stream_->header.msg_type_id;
   h.msg_stream_id = RTMP_MSID;
-  if (rtmp_data_cb_) {
-    rtmp_data_cb_(shared_from_this(), curr_stream_->msg, h);
+  if (rtmp_av_data_cb_) {
+    rtmp_av_data_cb_(shared_from_this(), curr_stream_->msg, h);
   }
 }
 
@@ -613,8 +614,12 @@ void RtmpSession::set_rtmp_session_close_cb(RtmpEventCb cb) {
   rtmp_session_close_cb_ = cb;
 }
 
-void RtmpSession::set_rtmp_data_cb(RtmpDataCb cb) {
-  rtmp_data_cb_ = cb;
+void RtmpSession::set_rtmp_meta_data_cb(RtmpMetaDataCb cb) {
+  rtmp_meta_data_cb_ = cb;
+}
+
+void RtmpSession::set_rtmp_av_data_cb(RtmpAvDataCb cb) {
+  rtmp_av_data_cb_ = cb;
 }
 
 } // namespace yet

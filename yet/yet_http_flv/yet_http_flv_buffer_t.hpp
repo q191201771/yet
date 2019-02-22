@@ -75,7 +75,7 @@ class TagCacheBase {
           }
         }
       } else {
-        std::size_t extra_len = get_prefix_extra(buf, tis);
+        auto extra_len = get_prefix_extra(buf, tis);
         buf_->append(buf->read_pos(), extra_len);
         miss_len_ -= extra_len;
         if (miss_len_ == 0) {
@@ -86,7 +86,7 @@ class TagCacheBase {
 
     virtual bool is_target_tag(const FlvTagInfo &ti) = 0;
 
-    BufferPtr buf() { return buf_; }
+    BufferPtr buf() { return (is_cached_ && buf_ && buf_->readable_size() > 0) ? buf_ : nullptr; }
 
   private:
     const bool  keeping_update_;
@@ -105,13 +105,23 @@ class TagCacheMetadata : public TagCacheBase {
     }
 };
 
-class TagCacheVideoSeqHeader : public TagCacheBase {
+class TagCacheAvcHeader : public TagCacheBase {
   public:
-    TagCacheVideoSeqHeader() : TagCacheBase(true, BUF_INIT_LEN_METADATA, BUF_SHRINK_LEN_METADATA) {}
-    virtual ~TagCacheVideoSeqHeader() {}
+    TagCacheAvcHeader() : TagCacheBase(true, BUF_INIT_LEN_AVC_HEADER, BUF_SHRINK_LEN_AVC_HEADER) {}
+    virtual ~TagCacheAvcHeader() {}
 
     bool is_target_tag(const FlvTagInfo &ti) {
-      return ti.tag_type == FLVTAGTYPE_VIDEO && *(ti.tag_pos + 11) == 0x17 && *(ti.tag_pos + 12) == 0x00;
+      return ti.tag_type == FLVTAGTYPE_VIDEO && *(ti.tag_pos + 11) == 0x17 && *(ti.tag_pos + 12) == 0x0;
+    }
+};
+
+class TagCacheAacHeader : public TagCacheBase {
+  public:
+    TagCacheAacHeader() : TagCacheBase(true, BUF_INIT_LEN_AAC_HEADER, BUF_SHRINK_LEN_AAC_HEADER) {}
+    virtual ~TagCacheAacHeader() {}
+
+    bool is_target_tag(const FlvTagInfo &ti) {
+      return ti.tag_type == FLVTAGTYPE_AUDIO && ((*(ti.tag_pos + 11) >> 4) == 0xa) && (*(ti.tag_pos + 12) == 0x0);
     }
 };
 

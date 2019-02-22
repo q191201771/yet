@@ -43,6 +43,7 @@ static constexpr std::size_t RTMP_MAX_CSID = 65599;
 static constexpr std::size_t RTMP_CSID_PROTOCOL_CONTROL = 2;
 static constexpr std::size_t RTMP_CSID_OVER_CONNECTION  = 3;
 static constexpr std::size_t RTMP_CSID_OVER_STREAM      = 5;
+static constexpr std::size_t RTMP_CSID_AMF              = 5; // send meta
 static constexpr std::size_t RTMP_CSID_AUDIO            = 6;
 static constexpr std::size_t RTMP_CSID_VIDEO            = 7;
 
@@ -56,7 +57,7 @@ static constexpr std::size_t RTMP_MSG_TYPE_ID_BANDWIDTH            = 0x06;
 static constexpr std::size_t RTMP_MSG_TYPE_ID_USER_CONTROL         = 0x04;
 static constexpr std::size_t RTMP_MSG_TYPE_ID_AUDIO                = 0x08;
 static constexpr std::size_t RTMP_MSG_TYPE_ID_VIDEO                = 0x09;
-static constexpr std::size_t RTMP_MSG_TYPE_ID_DATA_MESSAGE_AMF0    = 0x12;
+static constexpr std::size_t RTMP_MSG_TYPE_ID_DATA_MESSAGE_AMF0    = 0x12; // meta
 static constexpr std::size_t RTMP_MSG_TYPE_ID_COMMAND_MESSAGE_AMF0 = 0x14;
 
 static constexpr std::size_t RTMP_MSID_WHILE_PROTOCOL_CONTROL_MESSAGE = 0;

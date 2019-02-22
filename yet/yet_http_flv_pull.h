@@ -22,7 +22,8 @@ class HttpFlvPull : public std::enable_shared_from_this<HttpFlvPull> {
     void dispose() {}
 
     BufferPtr get_metadata();
-    BufferPtr get_video_seq_header();
+    BufferPtr get_avc_header();
+    BufferPtr get_aac_header();
 
   private:
     void resolve_cb(const ErrorCode &ec, const asio::ip::tcp::resolver::results_type &endpoints);
@@ -58,8 +59,9 @@ class HttpFlvPull : public std::enable_shared_from_this<HttpFlvPull> {
     asio::ip::tcp::socket   socket_;
     std::weak_ptr<Group>    group_;
     BufferPtr               in_buf_;
-    TagCacheMetadata        tcmd_;
-    TagCacheVideoSeqHeader  tcvsh_;
+    TagCacheMetadata        cache_meta_data_;
+    TagCacheAvcHeader       cache_avc_header_;
+    TagCacheAacHeader       cache_aac_header_;
     asio::streambuf         request_;
     asio::streambuf         response_;
     enum Stage              stage_ = STAGE_HTTP_STATUS_LINE;

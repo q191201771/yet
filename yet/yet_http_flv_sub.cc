@@ -11,9 +11,8 @@
 
 namespace yet {
 
-HttpFlvSub::HttpFlvSub(asio::ip::tcp::socket socket, std::weak_ptr<HttpFlvSubObserver> obs)
+HttpFlvSub::HttpFlvSub(asio::ip::tcp::socket socket)
   : socket_(std::move(socket))
-  , obs_(obs)
   , request_buf_(1024)
 {
   YET_LOG_DEBUG("HttpFlvSub() {}.", static_cast<void *>(this));
@@ -23,6 +22,9 @@ HttpFlvSub::~HttpFlvSub() {
   YET_LOG_DEBUG("~HttpFlvSub() {}.", static_cast<void *>(this));
 }
 
+void HttpFlvSub::set_sub_cb(HttpFlvSubCb cb) { sub_cb_ = cb; }
+
+void HttpFlvSub::set_close_cb(HttpFlvSubEventCb cb) { close_cb_ = cb; }
 
 void HttpFlvSub::start() {
   asio::async_read_until(socket_, request_buf_, "\r\n\r\n", std::bind(&HttpFlvSub::request_handler, shared_from_this(), _1, _2));
@@ -76,9 +78,7 @@ void HttpFlvSub::request_handler(const ErrorCode &ec, std::size_t len) {
   }
   YET_LOG_INFO("uri:{}, app:{}, live:{}, host:{}", uri, app_name, live_name, host);
 
-  if (auto obs = obs_.lock()) {
-    obs->on_http_flv_request(shared_from_this(), uri, app_name, live_name, host);
-  }
+  if (sub_cb_) { sub_cb_(shared_from_this(), uri, app_name, live_name, host); }
 
   do_send_http_headers();
 }
@@ -105,8 +105,10 @@ void HttpFlvSub::send_flv_header_cb(const ErrorCode &ec) {
   if (auto group = group_.lock()) {
     auto metadata = group->get_metadata();
     if (!metadata) {
+      YET_LOG_DEBUG("cache metadata not exist.");
       is_bc_ready_ = true;
     } else {
+      YET_LOG_DEBUG("{}", metadata->readable_size());
       asio::async_write(socket_, asio::buffer(metadata->read_pos(), metadata->readable_size()),
                         std::bind(&HttpFlvSub::send_metadata_cb, shared_from_this(), _1));
     }
@@ -119,20 +121,37 @@ void HttpFlvSub::send_metadata_cb(const ErrorCode &ec) {
   YET_LOG_INFO("Sent cached metadata.");
 
   if (auto group = group_.lock()) {
-    auto seq_header = group->get_video_seq_header();
-    if (!seq_header) {
+    auto header = group->get_avc_header();
+    if (!header) {
       is_bc_ready_ = true;
     } else {
-      asio::async_write(socket_, asio::buffer(seq_header->read_pos(), seq_header->readable_size()),
-                        std::bind(&HttpFlvSub::send_video_seq_header_cb, shared_from_this(), _1));
+      asio::async_write(socket_, asio::buffer(header->read_pos(), header->readable_size()),
+                        std::bind(&HttpFlvSub::send_avc_header_cb, shared_from_this(), _1));
     }
   }
 }
 
-void HttpFlvSub::send_video_seq_header_cb(const ErrorCode &ec) {
+void HttpFlvSub::send_avc_header_cb(const ErrorCode &ec) {
   SNIPPET_HANDLE_CB_ERROR;
 
-  YET_LOG_INFO("Sent cached video seq header.");
+  YET_LOG_INFO("Sent cached avc header.");
+
+  if (auto group = group_.lock()) {
+    auto header = group->get_aac_header();
+    if (!header) {
+      YET_LOG_DEBUG("CHEFERASEME");
+      is_bc_ready_ = true;
+    } else {
+      asio::async_write(socket_, asio::buffer(header->read_pos(), header->readable_size()),
+                        std::bind(&HttpFlvSub::send_aac_header_cb, shared_from_this(), _1));
+    }
+  }
+}
+
+void HttpFlvSub::send_aac_header_cb(const ErrorCode &ec) {
+  SNIPPET_HANDLE_CB_ERROR;
+
+  YET_LOG_INFO("Sent cached aac header.");
 
   is_bc_ready_ = true;
 }
@@ -192,9 +211,12 @@ void HttpFlvSub::set_group(std::weak_ptr<Group> group) {
 
 void HttpFlvSub::close() {
   socket_.close();
-  if (auto group = group_.lock()) {
-    group->del_http_flv_sub(shared_from_this());
+  if (close_cb_) {
+    close_cb_(shared_from_this());
   }
+  //if (auto group = group_.lock()) {
+  //  group->del_http_flv_sub(shared_from_this());
+  //}
 }
 
 }

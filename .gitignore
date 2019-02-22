@@ -5,3 +5,6 @@ tmp
 /output
 /yet/.root
 /conf/self.json.conf
+
+/yet/yet_rtmp_push.*
+/yet/yet_rtmp_pull.*
