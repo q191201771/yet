@@ -2,12 +2,25 @@
 #include <string>
 #include <asio.hpp>
 #include "yet_http_flv_pull.h"
-#include "yet_group.h"
 #include "yet.hpp"
 #include "chef_base/chef_strings_op.hpp"
 #include "chef_base/chef_stuff_op.hpp"
 
-#define SNIPPET_HANDLE_CB_ERROR if (ec) { YET_LOG_ERROR("ec:{}", ec.message()); return; }
+// CHEFTODO dup code with yet_rtmp_session.cc
+#define SNIPPET_ENTER_CB \
+  do { \
+    if (!ec) { \
+    } else { \
+      YET_LOG_ERROR("[{}] {} ec:{}, len:{}", (void *)this, __func__, ec.message(), len); \
+      if (ec == asio::error::eof) { \
+        YET_LOG_INFO("[{}] close by peer.", (void *)this); \
+        close(); \
+      } else if (ec == asio::error::broken_pipe) { \
+        YET_LOG_ERROR("[{}] broken pipe.", (void *)this); \
+      } \
+      return; \
+    } \
+  } while(0);
 
 namespace yet {
 
@@ -15,11 +28,11 @@ HttpFlvSub::HttpFlvSub(asio::ip::tcp::socket socket)
   : socket_(std::move(socket))
   , request_buf_(1024)
 {
-  YET_LOG_DEBUG("HttpFlvSub() {}.", static_cast<void *>(this));
+  YET_LOG_DEBUG("[{}] new HttpFlvSub.", (void *)this);
 }
 
 HttpFlvSub::~HttpFlvSub() {
-  YET_LOG_DEBUG("~HttpFlvSub() {}.", static_cast<void *>(this));
+  YET_LOG_DEBUG("[{}] delete HttpFlvSub.", (void *)this);
 }
 
 void HttpFlvSub::set_sub_cb(HttpFlvSubCb cb) { sub_cb_ = cb; }
@@ -31,7 +44,7 @@ void HttpFlvSub::start() {
 }
 
 void HttpFlvSub::request_handler(const ErrorCode &ec, std::size_t len) {
-  YET_LOG_DEBUG("ec:{} len:{}", ec.message(), len);
+  SNIPPET_ENTER_CB;
 
   using namespace chef;
 
@@ -46,7 +59,7 @@ void HttpFlvSub::request_handler(const ErrorCode &ec, std::size_t len) {
     YET_LOG_ERROR("request status line failed. <{}> <{}>", status_line, chef::stuff_op::bytes_to_hex((const uint8_t *)status_line.c_str(), status_line.length()));
     return;
   }
-  YET_LOG_DEBUG("status line:{}", status_line);
+  YET_LOG_DEBUG("[{}] status line:{}", (void *)this, status_line.erase(status_line.length()-1));
   auto sls = strings_op::split(status_line, ' ');
   if (sls.size() != 3 || strings_op::to_upper(sls[0]) != "GET") {
     YET_LOG_ERROR("request status line failed. <{}> <{}>", status_line, chef::stuff_op::bytes_to_hex((const uint8_t *)status_line.c_str(), status_line.length()));
@@ -76,7 +89,7 @@ void HttpFlvSub::request_handler(const ErrorCode &ec, std::size_t len) {
       break;
     }
   }
-  YET_LOG_INFO("uri:{}, app:{}, live:{}, host:{}", uri, app_name, live_name, host);
+  YET_LOG_DEBUG("[{}] uri:{}, app:{}, live:{}, host:{}", (void *)this, uri, app_name, live_name, host);
 
   if (sub_cb_) { sub_cb_(shared_from_this(), uri, app_name, live_name, host); }
 
@@ -84,89 +97,31 @@ void HttpFlvSub::request_handler(const ErrorCode &ec, std::size_t len) {
 }
 
 void HttpFlvSub::do_send_http_headers() {
-  asio::async_write(socket_, asio::buffer(FLV_HTTP_HEADERS, FLV_HTTP_HEADERS_LEN),
-                    std::bind(&HttpFlvSub::send_http_headers_cb, shared_from_this(), _1));
+  auto self(shared_from_this());
+  asio::async_write(socket_,
+                    asio::buffer(FLV_HTTP_HEADERS, FLV_HTTP_HEADERS_LEN),
+                    [this, self](ErrorCode ec, std::size_t len) {
+                      SNIPPET_ENTER_CB;
+                      do_send_flv_header();
+                    });
 }
-
-void HttpFlvSub::send_http_headers_cb(const ErrorCode &ec) {
-  SNIPPET_HANDLE_CB_ERROR;
-  do_send_flv_header();
-}
-
 
 void HttpFlvSub::do_send_flv_header() {
-  asio::async_write(socket_, asio::buffer(FLV_HEADER_BUF_13, 13),
-                    std::bind(&HttpFlvSub::send_flv_header_cb, shared_from_this(), _1));
-}
-
-void HttpFlvSub::send_flv_header_cb(const ErrorCode &ec) {
-  SNIPPET_HANDLE_CB_ERROR;
-
-  if (auto group = group_.lock()) {
-    auto metadata = group->get_metadata();
-    if (!metadata) {
-      YET_LOG_DEBUG("cache metadata not exist.");
-      is_bc_ready_ = true;
-    } else {
-      YET_LOG_DEBUG("{}", metadata->readable_size());
-      asio::async_write(socket_, asio::buffer(metadata->read_pos(), metadata->readable_size()),
-                        std::bind(&HttpFlvSub::send_metadata_cb, shared_from_this(), _1));
-    }
-  }
-}
-
-void HttpFlvSub::send_metadata_cb(const ErrorCode &ec) {
-  SNIPPET_HANDLE_CB_ERROR;
-
-  YET_LOG_INFO("Sent cached metadata.");
-
-  if (auto group = group_.lock()) {
-    auto header = group->get_avc_header();
-    if (!header) {
-      is_bc_ready_ = true;
-    } else {
-      asio::async_write(socket_, asio::buffer(header->read_pos(), header->readable_size()),
-                        std::bind(&HttpFlvSub::send_avc_header_cb, shared_from_this(), _1));
-    }
-  }
-}
-
-void HttpFlvSub::send_avc_header_cb(const ErrorCode &ec) {
-  SNIPPET_HANDLE_CB_ERROR;
-
-  YET_LOG_INFO("Sent cached avc header.");
-
-  if (auto group = group_.lock()) {
-    auto header = group->get_aac_header();
-    if (!header) {
-      YET_LOG_DEBUG("CHEFERASEME");
-      is_bc_ready_ = true;
-    } else {
-      asio::async_write(socket_, asio::buffer(header->read_pos(), header->readable_size()),
-                        std::bind(&HttpFlvSub::send_aac_header_cb, shared_from_this(), _1));
-    }
-  }
-}
-
-void HttpFlvSub::send_aac_header_cb(const ErrorCode &ec) {
-  SNIPPET_HANDLE_CB_ERROR;
-
-  YET_LOG_INFO("Sent cached aac header.");
-
-  is_bc_ready_ = true;
+  auto self(shared_from_this());
+  asio::async_write(socket_,
+                    asio::buffer(FLV_HEADER_BUF_13, 13),
+                    [this, self](ErrorCode ec, std::size_t len) {
+                      SNIPPET_ENTER_CB;
+                    });
 }
 
 void HttpFlvSub::async_send(BufferPtr buf) {
-  bool is_empty = send_buffers_.empty();
+  auto is_empty = send_buffers_.empty();
   send_buffers_.push(buf);
-  if (is_empty && is_bc_ready_) {
-    do_send();
-  }
+  if (is_empty) { do_send(); }
 }
 
 void HttpFlvSub::async_send(BufferPtr buf, const std::vector<FlvTagInfo> &tis) {
-  if (!is_bc_ready_) { return; }
-
   if (!sent_first_key_frame_) {
     if (tis.empty()) { return; }
 
@@ -184,48 +139,24 @@ void HttpFlvSub::async_send(BufferPtr buf, const std::vector<FlvTagInfo> &tis) {
     return;
   }
 
-  bool is_empty = send_buffers_.empty();
-  send_buffers_.push(buf);
-  if (is_empty && is_bc_ready_) {
-    do_send();
-  }
+  async_send(buf);
 }
 
 void HttpFlvSub::do_send() {
-  BufferPtr buf = send_buffers_.front();
-  asio::async_write(socket_, asio::buffer(buf->read_pos(), buf->readable_size()),
-                    std::bind(&HttpFlvSub::send_cb, shared_from_this(), _1, _2));
-}
-
-void HttpFlvSub::send_cb(const ErrorCode &ec, std::size_t len) {
-  (void)len;
-  //SNIPPET_HANDLE_CB_ERROR;
-  if (ec) {
-    YET_LOG_ERROR("ec:{}", ec.message());
-    if (ec.value() == asio::error::broken_pipe) {
-      close();
-    }
-    return;
-  }
-
-  send_buffers_.pop();
-  if (!send_buffers_.empty()) {
-    do_send();
-  }
-}
-
-void HttpFlvSub::set_group(std::weak_ptr<Group> group) {
-  group_ = group;
+  auto buf = send_buffers_.front();
+  auto self(shared_from_this());
+  asio::async_write(socket_,
+                    asio::buffer(buf->read_pos(), buf->readable_size()),
+                    [this, self](ErrorCode ec, std::size_t len) {
+                      SNIPPET_ENTER_CB;
+                      send_buffers_.pop();
+                      if (!send_buffers_.empty()) { do_send(); }
+                    });
 }
 
 void HttpFlvSub::close() {
   socket_.close();
-  if (close_cb_) {
-    close_cb_(shared_from_this());
-  }
-  //if (auto group = group_.lock()) {
-  //  group->del_http_flv_sub(shared_from_this());
-  //}
+  if (close_cb_) { close_cb_(shared_from_this()); }
 }
 
 }

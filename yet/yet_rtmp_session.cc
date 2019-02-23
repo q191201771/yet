@@ -17,10 +17,13 @@ namespace yet {
       if (ec == asio::error::eof) { \
         YET_LOG_INFO("[{}] close by peer.", (void *)this); \
         close(); \
+      } else if (ec == asio::error::broken_pipe) { \
+        YET_LOG_ERROR("[{}] broken pipe.", (void *)this); \
       } \
       return; \
     } \
   } while(0);
+
 
 #define SNIPPET_KEEP_READ do { do_read(); return; } while(0);
 

@@ -27,15 +27,12 @@ class HttpFlvSub : public std::enable_shared_from_this<HttpFlvSub> {
 
   public:
     void set_sub_cb(HttpFlvSubCb cb);
-    // TODO choice cb or group cb
     void set_close_cb(HttpFlvSubEventCb cb);
 
     void start();
 
     void async_send(BufferPtr buf, const std::vector<FlvTagInfo> &tis);
     void async_send(BufferPtr buf);
-
-    void set_group(std::weak_ptr<Group> group);
 
     void dispose() {}
 
@@ -45,14 +42,8 @@ class HttpFlvSub : public std::enable_shared_from_this<HttpFlvSub> {
   private:
     void request_handler(const ErrorCode &ec, std::size_t len);
     void do_send_http_headers();
-    void send_http_headers_cb(const ErrorCode &ec);
     void do_send_flv_header();
-    void send_flv_header_cb(const ErrorCode &ec);
-    void send_metadata_cb(const ErrorCode &ec);
-    void send_avc_header_cb(const ErrorCode &ec);
-    void send_aac_header_cb(const ErrorCode &ec);
     void do_send();
-    void send_cb(const ErrorCode &ec, std::size_t len);
 
   private:
     HttpFlvSub(const HttpFlvSub &) = delete;
@@ -68,10 +59,10 @@ class HttpFlvSub : public std::enable_shared_from_this<HttpFlvSub> {
     asio::ip::tcp::socket             socket_;
     HttpFlvSubCb                      sub_cb_;
     HttpFlvSubEventCb                 close_cb_;
-    std::weak_ptr<Group>              group_;
+    //std::weak_ptr<Group>              group_;
     asio::streambuf                   request_buf_;
     std::queue<BufferPtr>             send_buffers_;
-    bool                              is_bc_ready_ = false;
+    //bool                              is_bc_ready_ = false;
     bool                              sent_first_key_frame_ = false;
 };
 

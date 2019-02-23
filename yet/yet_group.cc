@@ -51,7 +51,7 @@ HttpFlvPullPtr Group::get_http_flv_pull() {
 }
 
 void Group::add_http_flv_sub(HttpFlvSubPtr sub) {
-  sub->set_group(shared_from_this());
+  //sub->set_group(shared_from_this());
   sub->set_close_cb(std::bind(&Group::on_http_flv_close, shared_from_this(), _1));
   http_flv_subs_.insert(sub);
 }

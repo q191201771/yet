@@ -29,7 +29,8 @@
 * nlohmann/json
 
 ```
-$./build.sh
+# cd into <yet dir>
+$./build.sh && ./output/bin/yet ./conf/yet.json.conf
 ```
 
 ### 我的环境
