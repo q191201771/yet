@@ -194,7 +194,7 @@ uint8_t *AmfOp::decode_string(const uint8_t *in, std::size_t valid_len, char **o
   if (!in || valid_len < 2 || !str_len) { return NULL; }
 
   *str_len = (in[0] << 8) + in[1];
-  if (*str_len > (valid_len-2)) { return NULL; }
+  if (*str_len > int(valid_len-2)) { return NULL; }
 
   *out = (char *)in + 2;
   if (used_len) { *used_len = *str_len + 2; }

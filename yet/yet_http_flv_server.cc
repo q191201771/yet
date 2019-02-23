@@ -53,6 +53,7 @@ void HttpFlvServer::dispose() {
 void HttpFlvServer::on_http_flv_request(HttpFlvSubPtr sub, const std::string &uri, const std::string &app_name,
                                         const std::string &live_name, const std::string &host)
 {
+  (void)uri;(void)app_name;(void)host;
   auto group = server_->get_or_create_group(live_name);
 
   /// pull if in not exist

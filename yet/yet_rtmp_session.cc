@@ -128,6 +128,10 @@ void RtmpSession::read_cb(ErrorCode ec, std::size_t len) {
         basic_header_len = 1;
       } else if (curr_csid_ < 64) {
         basic_header_len = 1;
+      } else {
+        // erase compiler warning
+        basic_header_len = -1;
+        YET_LOG_ERROR("{}", curr_csid_);
       }
 
       auto stream = get_or_create_stream(curr_csid_);
@@ -192,24 +196,24 @@ void RtmpSession::read_cb(ErrorCode ec, std::size_t len) {
 
     curr_stream_ = get_or_create_stream(curr_csid_);
 
-    int needed_size;
+    std::size_t needed_size;
     if (curr_stream_->msg_len <= peer_chunk_size_) {
       needed_size = curr_stream_->msg_len;
     } else {
-      int whole_needed = curr_stream_->msg_len - (int)curr_stream_->msg->readable_size();
+      std::size_t whole_needed = curr_stream_->msg_len - curr_stream_->msg->readable_size();
       needed_size = std::min(whole_needed, peer_chunk_size_);
     }
 
-    if ((int)read_buf_.readable_size() < needed_size) { SNIPPET_KEEP_READ; }
+    if (read_buf_.readable_size() < needed_size) { SNIPPET_KEEP_READ; }
 
     curr_stream_->msg->append(read_buf_.read_pos(), needed_size);
     read_buf_.erase(needed_size);
 
-    if ((int)curr_stream_->msg->readable_size() == curr_stream_->msg_len) {
+    if (curr_stream_->msg->readable_size() == curr_stream_->msg_len) {
       complete_message_handler();
       curr_stream_->msg->clear();
     }
-    YET_LOG_ASSERT((int)curr_stream_->msg->readable_size() <= curr_stream_->msg_len, "invalid readable size. {} {}",
+    YET_LOG_ASSERT(curr_stream_->msg->readable_size() <= curr_stream_->msg_len, "invalid readable size. {} {}",
                    curr_stream_->msg->readable_size(), curr_stream_->msg_len);
 
     header_done_ = false;
@@ -277,6 +281,7 @@ void RtmpSession::set_chunk_size_handler(int val) {
 }
 
 void RtmpSession::win_ack_size_handler(int val) {
+  peer_win_ack_size_ = val;
   YET_LOG_INFO("[{}] ---->Window Acknowledgement Size {}", (void *)this, peer_win_ack_size_);
 }
 
@@ -341,13 +346,13 @@ void RtmpSession::connect_handler(double transaction_id, uint8_t *buf, std::size
 }
 
 void RtmpSession::do_write_win_ack_size() {
-  int len = RtmpPackOp::encode_rtmp_msg_win_ack_size_reserve();
-  write_buf_.reserve(len);
+  int wlen = RtmpPackOp::encode_rtmp_msg_win_ack_size_reserve();
+  write_buf_.reserve(wlen);
   RtmpPackOp::encode_win_ack_size(write_buf_.write_pos(), RTMP_WINDOW_ACKNOWLEDGEMENT_SIZE);
   YET_LOG_INFO("[{}] <----Window Acknowledgement Size {}", (void *)this, RTMP_WINDOW_ACKNOWLEDGEMENT_SIZE);
   auto self(shared_from_this());
   asio::async_write(socket_,
-      asio::buffer(write_buf_.read_pos(), len),
+      asio::buffer(write_buf_.read_pos(), wlen),
       [this, self](ErrorCode ec, std::size_t len) {
         SNIPPET_ENTER_CB;
         do_write_peer_bandwidth();
@@ -355,13 +360,13 @@ void RtmpSession::do_write_win_ack_size() {
 }
 
 void RtmpSession::do_write_peer_bandwidth() {
-  int len = RtmpPackOp::encode_rtmp_msg_peer_bandwidth_reserve();
-  write_buf_.reserve(len);
+  int wlen = RtmpPackOp::encode_rtmp_msg_peer_bandwidth_reserve();
+  write_buf_.reserve(wlen);
   RtmpPackOp::encode_peer_bandwidth(write_buf_.write_pos(), RTMP_PEER_BANDWIDTH);
   YET_LOG_INFO("[{}] <----Set Peer Bandwidth {},Dynamic", (void *)this, RTMP_PEER_BANDWIDTH);
   auto self(shared_from_this());
   asio::async_write(socket_,
-      asio::buffer(write_buf_.read_pos(), len),
+      asio::buffer(write_buf_.read_pos(), wlen),
       [this, self](ErrorCode ec, std::size_t len) {
         SNIPPET_ENTER_CB;
         do_write_chunk_size();
@@ -369,13 +374,13 @@ void RtmpSession::do_write_peer_bandwidth() {
 }
 
 void RtmpSession::do_write_chunk_size() {
-  int len = RtmpPackOp::encode_rtmp_msg_chunk_size_reserve();
-  write_buf_.reserve(len);
+  int wlen = RtmpPackOp::encode_rtmp_msg_chunk_size_reserve();
+  write_buf_.reserve(wlen);
   RtmpPackOp::encode_chunk_size(write_buf_.write_pos(), RTMP_LOCAL_CHUNK_SIZE);
   YET_LOG_INFO("[{}] <----Set Chunk Size {}", (void *)this, RTMP_LOCAL_CHUNK_SIZE);
   auto self(shared_from_this());
   asio::async_write(socket_,
-      asio::buffer(write_buf_.read_pos(), len),
+      asio::buffer(write_buf_.read_pos(), wlen),
       [this, self](ErrorCode ec, std::size_t len) {
         SNIPPET_ENTER_CB;
         do_write_connect_result();
@@ -383,19 +388,20 @@ void RtmpSession::do_write_chunk_size() {
 }
 
 void RtmpSession::do_write_connect_result() {
-  int len = RtmpPackOp::encode_rtmp_msg_connect_result_reserve();
-  write_buf_.reserve(len);
+  int wlen = RtmpPackOp::encode_rtmp_msg_connect_result_reserve();
+  write_buf_.reserve(wlen);
   RtmpPackOp::encode_connect_result(write_buf_.write_pos());
   YET_LOG_INFO("[{}] <----_result(\'NetConnection.Connect.Success\')", (void *)this);
   auto self(shared_from_this());
   asio::async_write(socket_,
-      asio::buffer(write_buf_.read_pos(), len),
+      asio::buffer(write_buf_.read_pos(), wlen),
       [this, self](ErrorCode ec, std::size_t len) {
         SNIPPET_ENTER_CB;
       });
 }
 
 void RtmpSession::create_stream_handler(double transaction_id, uint8_t *buf, std::size_t len) {
+  (void)buf; (void)len;
   create_stream_transaction_id_ = transaction_id;
 
   // TODO null obj
@@ -405,14 +411,14 @@ void RtmpSession::create_stream_handler(double transaction_id, uint8_t *buf, std
 }
 
 void RtmpSession::do_write_create_stream_result() {
-  int len = RtmpPackOp::encode_rtmp_msg_create_stream_result_reserve();
-  write_buf_.reserve(len);
+  int wlen = RtmpPackOp::encode_rtmp_msg_create_stream_result_reserve();
+  write_buf_.reserve(wlen);
   // TODO stream id
   RtmpPackOp::encode_create_stream_result(write_buf_.write_pos(), create_stream_transaction_id_);
   YET_LOG_INFO("[{}] <----_result()", (void *)this);
   auto self(shared_from_this());
   asio::async_write(socket_,
-      asio::buffer(write_buf_.read_pos(), len),
+      asio::buffer(write_buf_.read_pos(), wlen),
       [this, self](ErrorCode ec, std::size_t len) {
         SNIPPET_ENTER_CB;
       });
@@ -445,14 +451,14 @@ void RtmpSession::publish_handler(double transaction_id, uint8_t *buf, std::size
 }
 
 void RtmpSession::do_write_on_status_publish() {
-  int len = RtmpPackOp::encode_rtmp_msg_on_status_publish_reserve();
-  write_buf_.reserve(len);
+  int wlen = RtmpPackOp::encode_rtmp_msg_on_status_publish_reserve();
+  write_buf_.reserve(wlen);
   // TODO stream id
   RtmpPackOp::encode_on_status_publish(write_buf_.write_pos(), 1);
   YET_LOG_INFO("[{}] <----onStatus(\'NetStream.Publish.Start\')", (void *)this);
   auto self(shared_from_this());
   asio::async_write(socket_,
-      asio::buffer(write_buf_.read_pos(), len),
+      asio::buffer(write_buf_.read_pos(), wlen),
       [this, self](ErrorCode ec, std::size_t len) {
         SNIPPET_ENTER_CB;
       });
@@ -475,14 +481,14 @@ void RtmpSession::play_handler(double transaction_id, uint8_t *buf, std::size_t 
 }
 
 void RtmpSession::do_write_on_status_play() {
-  int len = RtmpPackOp::encode_rtmp_msg_on_status_play_reserve();
-  write_buf_.reserve(len);
+  int wlen = RtmpPackOp::encode_rtmp_msg_on_status_play_reserve();
+  write_buf_.reserve(wlen);
   // TODO stream id
   RtmpPackOp::encode_on_status_play(write_buf_.write_pos(), 1);
   YET_LOG_INFO("[{}] <----onStatus(\'NetStream.Play.Start\')", (void *)this);
   auto self(shared_from_this());
   asio::async_write(socket_,
-      asio::buffer(write_buf_.read_pos(), len),
+      asio::buffer(write_buf_.read_pos(), wlen),
       [this, self](ErrorCode ec, std::size_t len) {
         SNIPPET_ENTER_CB;
         type_ = RTMP_SESSION_TYPE_SUB;
@@ -493,6 +499,7 @@ void RtmpSession::do_write_on_status_play() {
 }
 
 void RtmpSession::delete_stream_handler(double transaction_id, uint8_t *buf, std::size_t len) {
+  (void)transaction_id;
   buf++;
   len--;
   double msid;

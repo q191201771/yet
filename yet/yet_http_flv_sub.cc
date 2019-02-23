@@ -198,6 +198,7 @@ void HttpFlvSub::do_send() {
 }
 
 void HttpFlvSub::send_cb(const ErrorCode &ec, std::size_t len) {
+  (void)len;
   //SNIPPET_HANDLE_CB_ERROR;
   if (ec) {
     YET_LOG_ERROR("ec:{}", ec.message());

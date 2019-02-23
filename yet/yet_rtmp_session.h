@@ -123,7 +123,7 @@ class RtmpSession : public std::enable_shared_from_this<RtmpSession> {
     int                   curr_csid_;
     RtmpStreamPtr         curr_stream_;
     bool                  header_done_ = false;
-    int                   peer_chunk_size_ = RTMP_DEFAULT_CHUNK_SIZE;
+    std::size_t           peer_chunk_size_ = RTMP_DEFAULT_CHUNK_SIZE;
     int                   peer_win_ack_size_ = -1;
     double                create_stream_transaction_id_ = -1;
     std::queue<BufferPtr> send_buffers_;

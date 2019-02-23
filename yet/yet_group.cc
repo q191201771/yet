@@ -96,7 +96,7 @@ BufferPtr Group::get_aac_header() {
 }
 
 void Group::on_rtmp_meta_data(RtmpSessionPtr pub, BufferPtr msg, uint8_t *meta_pos, std::size_t meta_size, AmfObjectItemMapPtr meta) {
-  (void)msg;
+  (void)pub; (void)msg; (void)meta;
 
   RtmpHeader h;
   h.csid = RTMP_CSID_AMF;
@@ -121,6 +121,7 @@ void Group::on_rtmp_meta_data(RtmpSessionPtr pub, BufferPtr msg, uint8_t *meta_p
 }
 
 void Group::on_rtmp_av_data(RtmpSessionPtr pub, BufferPtr msg, const RtmpHeader &h) {
+  (void)pub;
   RtmpHeader *prev = h.msg_type_id == RTMP_MSG_TYPE_ID_AUDIO ? prev_audio_header_ : prev_video_header_;
   BufferPtr delta_chunks;
   BufferPtr abs_chunks;

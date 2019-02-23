@@ -7,6 +7,7 @@
 #pragma once
 
 #include "chef_base/chef_be_le_op.hpp"
+#include "chef_base/chef_buffer.hpp"
 #include "yet_http_flv/yet_http_flv.hpp"
 #include <assert.h>
 
