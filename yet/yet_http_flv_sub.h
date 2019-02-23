@@ -8,18 +8,11 @@
 
 #include <queue>
 #include <asio.hpp>
+#include "chef_base/chef_snippet.hpp"
 #include "yet.hpp"
 #include "yet_http_flv/yet_http_flv_buffer_t.hpp"
 
 namespace yet {
-
-//class HttpFlvSubObserver {
-//  public:
-//    virtual ~HttpFlvSubObserver() {}
-//
-//    virtual void on_http_flv_request(HttpFlvSubPtr sub, const std::string &uri, const std::string &app_name,
-//                                     const std::string &live_name, const std::string &host) = 0;
-//};
 
 class HttpFlvSub : public std::enable_shared_from_this<HttpFlvSub> {
   public:
@@ -40,6 +33,7 @@ class HttpFlvSub : public std::enable_shared_from_this<HttpFlvSub> {
     void start();
 
     void async_send(BufferPtr buf, const std::vector<FlvTagInfo> &tis);
+    void async_send(BufferPtr buf);
 
     void set_group(std::weak_ptr<Group> group);
 
@@ -63,6 +57,11 @@ class HttpFlvSub : public std::enable_shared_from_this<HttpFlvSub> {
   private:
     HttpFlvSub(const HttpFlvSub &) = delete;
     HttpFlvSub &operator=(const HttpFlvSub &) = delete;
+
+  public:
+    CHEF_PROPERTY_WITH_INIT_VALUE(bool, has_sent_metadata, false);
+    CHEF_PROPERTY_WITH_INIT_VALUE(bool, has_sent_audio, false);
+    CHEF_PROPERTY_WITH_INIT_VALUE(bool, has_sent_video, false);
 
   private:
     asio::ip::tcp::socket             socket_;

@@ -283,7 +283,7 @@ uint8_t *AmfOp::decode_ecma_array(const uint8_t *in, std::size_t valid_len, AmfO
   uint8_t *p = decode_int32(in+1, valid_len-1, &array_len, nullptr);
   if (!p) { return nullptr; }
 
-  // array_len e.g. 14 means 20(1*16+4)
+  // array_len TODO obs 14 means 20(1*16+4)
   (void)array_len;
   return decode_object_or_ecma_array(p, valid_len-5, objs, used_len);
   //return (!p && objs->size() == array_len) ? p : nullptr;

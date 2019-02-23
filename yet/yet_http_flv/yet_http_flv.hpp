@@ -40,6 +40,7 @@ static constexpr std::size_t FLV_HEADER_FLV_VERSION = 9;
 static constexpr uint8_t FLV_HEADER_BUF_13[] = { 0x46, 0x4c, 0x56, 0x01, 0x05, 0x0, 0x0, 0x0, 0x09, 0x0, 0x0, 0x0, 0x0 };
 
 static constexpr std::size_t FLV_TAG_HEADER_LEN = 11;
+static constexpr std::size_t FLV_PREV_TAG_LEN = 4;
 
 static constexpr std::size_t FLV_TAG_HEADER_TYPE_AUDIO       = 8;
 static constexpr std::size_t FLV_TAG_HEADER_TYPE_VIDEO       = 9;

@@ -25,7 +25,8 @@ static constexpr std::size_t BUF_INIT_LEN_RTMP_WRITE                = 4096;
 static constexpr std::size_t BUF_SHRINK_LEN_RTMP_WRITE              = 2147483647;
 static constexpr std::size_t BUF_INIT_LEN_RTMP_COMPLETE_MESSAGE     = 16384;
 static constexpr std::size_t BUF_SHRINK_LEN_RTMP_COMPLETE_MESSAGE   = 2147483647;
-
+//static constexpr std::size_t BUF_INIT_LEN_HTTP_FLV_METADATA         = 4096;
+//static constexpr std::size_t BUF_SHRINK_LEN_HTTP_FLV_METADATA       = 2147483647;
 }
 
 // const

@@ -106,8 +106,6 @@ class RtmpSession : public std::enable_shared_from_this<RtmpSession> {
     CHEF_PROPERTY(std::string, app);
     CHEF_PROPERTY(std::string, live_name);
     CHEF_PROPERTY_WITH_INIT_VALUE(RtmpSessionType, type, RTMP_SESSION_TYPE_UNKNOWN);
-
-  public:
     CHEF_PROPERTY_WITH_INIT_VALUE(bool, has_sent_metadata, false);
     CHEF_PROPERTY_WITH_INIT_VALUE(bool, has_sent_audio, false);
     CHEF_PROPERTY_WITH_INIT_VALUE(bool, has_sent_video, false);

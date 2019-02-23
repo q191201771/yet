@@ -55,14 +55,15 @@ void HttpFlvServer::on_http_flv_request(HttpFlvSubPtr sub, const std::string &ur
 {
   auto group = server_->get_or_create_group(live_name);
 
-  auto in = group->get_http_flv_pull();
-  if (in) {
-    YET_LOG_DEBUG("on_http_flv_request. {} in exist.", live_name);
-  } else {
-    YET_LOG_DEBUG("on_http_flv_request. {} create in.", live_name);
-    in = std::make_shared<HttpFlvPull>(io_ctx_, Config::instance()->http_flv_pull_host(), uri);
-    group->set_http_flv_pull(in);
-  }
+  /// pull if in not exist
+  //auto in = group->get_http_flv_pull();
+  //if (in) {
+  //  YET_LOG_DEBUG("on_http_flv_request. {} in exist.", live_name);
+  //} else {
+  //  YET_LOG_DEBUG("on_http_flv_request. {} create in.", live_name);
+  //  in = std::make_shared<HttpFlvPull>(io_ctx_, Config::instance()->http_flv_pull_host(), uri);
+  //  group->set_http_flv_pull(in);
+  //}
 
   group->add_http_flv_sub(sub);
 }

@@ -43,19 +43,19 @@ void HttpFlvSub::request_handler(const ErrorCode &ec, std::size_t len) {
 
   std::istream request_stream(&request_buf_);
   if (!std::getline(request_stream, status_line) || status_line.empty() || status_line.back() != '\r') {
-    YET_LOG_ERROR("request status line failed. {}", status_line);
+    YET_LOG_ERROR("request status line failed. <{}> <{}>", status_line, chef::stuff_op::bytes_to_hex((const uint8_t *)status_line.c_str(), status_line.length()));
     return;
   }
   YET_LOG_DEBUG("status line:{}", status_line);
   auto sls = strings_op::split(status_line, ' ');
   if (sls.size() != 3 || strings_op::to_upper(sls[0]) != "GET") {
-    YET_LOG_ERROR("request status line failed. {}", status_line);
+    YET_LOG_ERROR("request status line failed. <{}> <{}>", status_line, chef::stuff_op::bytes_to_hex((const uint8_t *)status_line.c_str(), status_line.length()));
     return;
   }
   uri = sls[1];
   auto ukv = strings_op::split(uri, '/', false);
   if (ukv.empty() || ukv.size() < 2 || !chef::strings_op::has_suffix(ukv[ukv.size()-1], ".flv")) {
-    YET_LOG_ERROR("request status line failed. {}", status_line);
+    YET_LOG_ERROR("request status line failed. <{}> <{}>", status_line, chef::stuff_op::bytes_to_hex((const uint8_t *)status_line.c_str(), status_line.length()));
     return;
   }
   app_name = ukv[ukv.size()-2];
@@ -154,6 +154,14 @@ void HttpFlvSub::send_aac_header_cb(const ErrorCode &ec) {
   YET_LOG_INFO("Sent cached aac header.");
 
   is_bc_ready_ = true;
+}
+
+void HttpFlvSub::async_send(BufferPtr buf) {
+  bool is_empty = send_buffers_.empty();
+  send_buffers_.push(buf);
+  if (is_empty && is_bc_ready_) {
+    do_send();
+  }
 }
 
 void HttpFlvSub::async_send(BufferPtr buf, const std::vector<FlvTagInfo> &tis) {

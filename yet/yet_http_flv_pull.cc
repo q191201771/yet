@@ -4,6 +4,7 @@
 #include "yet_group.h"
 #include "chef_base/chef_strings_op.hpp"
 #include "chef_base/chef_stuff_op.hpp"
+#include "chef_base/chef_be_le_op.hpp"
 #include "chef_base/chef_stringify_stl.hpp"
 
 #define SNIPPET_HANDLE_CB_ERROR if (ec) { YET_LOG_ERROR("ec:{}", ec.message()); return; }
@@ -96,7 +97,7 @@ void HttpFlvPull::read_header_stuff_cb(const ErrorCode &ec, std::size_t len) {
 
       uint8_t *p = in_buf_->read_pos();
       if (*p != 'F' || *(p+1) != 'L' || *(p+2) != 'V' ||
-          chef::stuff_op::read_be_int(p+5, 4) != FLV_HEADER_FLV_VERSION
+          chef::be_le_op::read_be_ui32(p+5) != FLV_HEADER_FLV_VERSION
       ) {
         YET_LOG_ERROR("Invalid flv header. {}", chef::stuff_op::bytes_to_hex(in_buf_->read_pos(), 32, 16));
         return;
@@ -152,7 +153,7 @@ void HttpFlvPull::flv_body_handler() {
       FlvTagInfo ti;
       ti.tag_pos = p;
       ti.tag_type = static_cast<FlvTagType>(tag_type);
-      tag_data_size_ = chef::stuff_op::read_be_int(p+1, 3);
+      tag_data_size_ = chef::be_le_op::read_be_ui24(p+1);
       ti.tag_whole_size = tag_data_size_ + FLV_TAG_HEADER_LEN + 4;
 
       tis.push_back(ti);
