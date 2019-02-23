@@ -62,6 +62,7 @@ class HttpFlvSub : public std::enable_shared_from_this<HttpFlvSub> {
     CHEF_PROPERTY_WITH_INIT_VALUE(bool, has_sent_metadata, false);
     CHEF_PROPERTY_WITH_INIT_VALUE(bool, has_sent_audio, false);
     CHEF_PROPERTY_WITH_INIT_VALUE(bool, has_sent_video, false);
+    CHEF_PROPERTY_WITH_INIT_VALUE(bool, has_sent_key_frame, false);
 
   private:
     asio::ip::tcp::socket             socket_;

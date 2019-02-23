@@ -30,6 +30,16 @@ class HttpFlvPackOp {
       buf = chef::be_le_op::write_be_ui24(buf+4, timestamp &0xffffff);
       *buf = timestamp >> 24;
     }
+
+    static BufferPtr pack_tag(uint8_t *data, std::size_t data_size, uint8_t type, uint32_t timestamp) {
+      BufferPtr buf = std::make_shared<Buffer>(FLV_TAG_HEADER_LEN + data_size + FLV_PREV_TAG_LEN);
+      uint8_t *p = buf->read_pos();
+      pack_tag_header(p, type, data_size, timestamp);
+      memcpy(p + FLV_TAG_HEADER_LEN, data, data_size);
+      chef::be_le_op::write_be_ui32(p + FLV_TAG_HEADER_LEN + data_size, FLV_TAG_HEADER_LEN + data_size);
+      buf->seek_write_pos(FLV_TAG_HEADER_LEN + data_size + FLV_PREV_TAG_LEN);
+      return buf;
+    }
 };
 
 }

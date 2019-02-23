@@ -111,12 +111,7 @@ void Group::on_rtmp_meta_data(RtmpSessionPtr pub, BufferPtr msg, uint8_t *meta_p
     sub->async_send(rtmp_chunked_metadata_);
   }
 
-  http_flv_metadata_ = std::make_shared<Buffer>(FLV_TAG_HEADER_LEN + meta_size + FLV_PREV_TAG_LEN);
-  uint8_t *p = http_flv_metadata_->write_pos();
-  HttpFlvPackOp::pack_tag_header(p, FLV_TAG_HEADER_TYPE_SCRIPT_DATA, meta_size, 0);
-  memcpy(p+FLV_TAG_HEADER_LEN, meta_pos, meta_size);
-  chef::be_le_op::write_be_ui32(p + FLV_TAG_HEADER_LEN + meta_size, FLV_TAG_HEADER_LEN + meta_size);
-  http_flv_metadata_->seek_write_pos(FLV_TAG_HEADER_LEN + meta_size + FLV_PREV_TAG_LEN);
+  http_flv_metadata_ = HttpFlvPackOp::pack_tag(meta_pos, meta_size, FLV_TAG_HEADER_TYPE_SCRIPT_DATA, 0);
   YET_LOG_DEBUG("cache http flv meta data.");
 
   for (auto &sub : http_flv_subs_) {
@@ -203,6 +198,7 @@ void Group::on_rtmp_av_data(RtmpSessionPtr pub, BufferPtr msg, const RtmpHeader 
 
   } // rtmp subs loop
 
+  // CHEFTODO dup code with rtmp subs loop
   for (auto &sub : http_flv_subs_) {
     if (!sub->has_sent_metadata()) {
       if (http_flv_metadata_) {
@@ -228,6 +224,28 @@ void Group::on_rtmp_av_data(RtmpSessionPtr pub, BufferPtr msg, const RtmpHeader 
       }
     }
 
+    if (!sub->has_sent_key_frame()) {
+      if (h.msg_type_id == RTMP_MSG_TYPE_ID_AUDIO) {
+        continue;
+      } else if (h.msg_type_id == RTMP_MSG_TYPE_ID_VIDEO) {
+        if (msg->readable_size() > 1 && msg->read_pos()[0] == 0x17) {
+          sub->set_has_sent_key_frame(true);
+        } else {
+          continue;
+        }
+      }
+    }
+
+    if ((h.msg_type_id == RTMP_MSG_TYPE_ID_AUDIO)) {
+      auto buf = HttpFlvPackOp::pack_tag(msg->read_pos(), msg->readable_size(), FLV_TAG_HEADER_TYPE_AUDIO, h.timestamp);
+      sub->async_send(buf);
+      sub->set_has_sent_audio(true);
+    } else {
+      auto buf = HttpFlvPackOp::pack_tag(msg->read_pos(), msg->readable_size(), FLV_TAG_HEADER_TYPE_VIDEO, h.timestamp);
+      sub->async_send(buf);
+      sub->set_has_sent_video(true);
+    }
+
   } // http flv subs loop
 
   if (h.msg_type_id == RTMP_MSG_TYPE_ID_AUDIO) {
@@ -250,12 +268,7 @@ void Group::cache_aac_header(BufferPtr msg, const RtmpHeader &h) {
     YET_LOG_DEBUG("cache aac header.");
     rtmp_chunked_aac_header_ = RtmpChunkOp::msg2chunks(msg, h, nullptr, RTMP_LOCAL_CHUNK_SIZE);
 
-    http_flv_aac_header_ = std::make_shared<Buffer>(FLV_TAG_HEADER_LEN + msg->readable_size() + FLV_PREV_TAG_LEN);
-    uint8_t *wp = http_flv_aac_header_->write_pos();
-    HttpFlvPackOp::pack_tag_header(wp, FLV_TAG_HEADER_TYPE_AUDIO, msg->readable_size(), 0);
-    memcpy(wp + FLV_TAG_HEADER_LEN, rp, msg->readable_size());
-    chef::be_le_op::write_be_ui32(wp + FLV_TAG_HEADER_LEN + msg->readable_size(), FLV_TAG_HEADER_LEN + msg->readable_size());
-    http_flv_aac_header_->seek_write_pos(FLV_TAG_HEADER_LEN + msg->readable_size() + FLV_PREV_TAG_LEN);
+    http_flv_aac_header_ = HttpFlvPackOp::pack_tag(rp, msg->readable_size(), FLV_TAG_HEADER_TYPE_AUDIO, 0);
   }
 }
 
@@ -265,12 +278,7 @@ void Group::cache_avc_header(BufferPtr msg, const RtmpHeader &h) {
     YET_LOG_DEBUG("cache avc header.");
     rtmp_chunked_avc_header_ = RtmpChunkOp::msg2chunks(msg, h, nullptr, RTMP_LOCAL_CHUNK_SIZE);
 
-    http_flv_avc_header_ = std::make_shared<Buffer>(FLV_TAG_HEADER_LEN + msg->readable_size() + FLV_PREV_TAG_LEN);
-    uint8_t *wp = http_flv_avc_header_->write_pos();
-    HttpFlvPackOp::pack_tag_header(wp, FLV_TAG_HEADER_TYPE_VIDEO, msg->readable_size(), 0);
-    memcpy(wp + FLV_TAG_HEADER_LEN, rp, msg->readable_size());
-    chef::be_le_op::write_be_ui32(wp + FLV_TAG_HEADER_LEN + msg->readable_size(), FLV_TAG_HEADER_LEN + msg->readable_size());
-    http_flv_avc_header_->seek_write_pos(FLV_TAG_HEADER_LEN + msg->readable_size() + FLV_PREV_TAG_LEN);
+    http_flv_avc_header_ = HttpFlvPackOp::pack_tag(rp, msg->readable_size(), FLV_TAG_HEADER_TYPE_VIDEO, 0);
   }
 }
 
