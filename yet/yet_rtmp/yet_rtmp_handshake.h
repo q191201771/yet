@@ -11,13 +11,17 @@
 
 namespace yet {
 
-class RtmpHandshake {
+class RtmpHandshakeS;
+class RtmpHandshakeC;
+
+class RtmpHandshakeS {
   public:
     bool handle_c0c1(const uint8_t *c0c1, std::size_t len);
+    // CHEFTODO merge s0s1s2
+    //uint8_t *create_s0s1s2();
     uint8_t *create_s0s1();
     uint8_t *create_s2();
 
-    //uint8_t *create_s0s1s2();
     bool handle_c2(const uint8_t *, std::size_t) { return true; }
 
   private:
@@ -29,11 +33,11 @@ class RtmpHandshake {
                                          const uint8_t *key, std::size_t key_len);
 
   public:
-    RtmpHandshake() {}
+    RtmpHandshakeS() {}
 
   private:
-    RtmpHandshake(const RtmpHandshake &) = delete;
-    const RtmpHandshake &operator=(const RtmpHandshake &) = delete;
+    RtmpHandshakeS(const RtmpHandshakeS &) = delete;
+    const RtmpHandshakeS &operator=(const RtmpHandshakeS &) = delete;
 
   private:
     uint8_t s0s1_[RTMP_S0S1_LEN];
@@ -41,6 +45,18 @@ class RtmpHandshake {
     int timestamp_recvd_c1_;
     int timestamp_sent_s1_;
     bool is_old_;
+};
+
+// CHEFTODO option to new style?
+class RtmpHandshakeC {
+  public:
+    uint8_t *create_c0c1();
+    bool handle_s0s1s2(uint8_t *s0s1s2);
+    uint8_t *create_c2();
+
+  private:
+    uint8_t c0c1_[RTMP_C0C1_LEN];
+    uint8_t c2_[RTMP_C2_LEN];
 };
 
 }

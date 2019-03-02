@@ -2,7 +2,7 @@
 
 [English readme click me](./README.EN.md)
 
-都9102了，我要开始写一个 rtmp / http-flv 服务器了，哈哈。
+都9102年了，我要开始写一个 rtmp / http-flv 服务器了，哈哈。
 
 欢迎star fork watch issue。
 
@@ -29,8 +29,12 @@
 * nlohmann/json
 
 ```
-# cd into <yet dir>
-$./build.sh && ./output/bin/yet ./conf/yet.json.conf
+# 编译方法（先进入yet工程的根目录）
+$./build.sh
+# 启动方法
+$./output/bin/yet ./conf/yet.json.conf
+
+# 成功启动后，在1935端口进行rtmp监听，在8080端口进行http-flv播放的监听，具体参见配置文件的配置
 ```
 
 ### 我的环境

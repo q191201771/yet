@@ -37,6 +37,11 @@ int RtmpPackOp::encode_rtmp_msg_publish_reserve(const char *app, const char *str
          AmfOp::encode_string_reserve(STRLEN(stream_name));
 }
 
+int RtmpPackOp::encode_rtmp_msg_play_reserve(const char *stream_name) {
+  // 7 -> "play", 9 -> Number, 1 -> Null
+  return CHUNK_HEADER_SIZE_TYPE0 + 7 + 9 + 1 + AmfOp::encode_string_reserve(STRLEN(stream_name));
+}
+
 static inline uint8_t *ENCODE_MESSAGE_HEADER(uint8_t *out, int csid, int len, int type_id, int stream_id) {
   // chunk basic header
   *out++ = (0x0 << 6) | csid; // fmt and chunk stream id
@@ -87,11 +92,11 @@ uint8_t *RtmpPackOp::encode_user_control_stream_eof(uint8_t *out) {
   return out;
 }
 
-uint8_t *RtmpPackOp::encode_connect(uint8_t *out, int len, const char *app, const char *swf_url, const char *tc_url) {
+uint8_t *RtmpPackOp::encode_connect(uint8_t *out, int len, const char *app, const char *swf_url, const char *tc_url, uint32_t tid) {
   out = ENCODE_MESSAGE_HEADER(out, RTMP_CSID_OVER_CONNECTION, len-CHUNK_HEADER_SIZE_TYPE0, RTMP_MSG_TYPE_ID_COMMAND_MESSAGE_AMF0, 0);
 
   out = AmfOp::encode_string(out, "connect", 7);
-  out = AmfOp::encode_number(out, RTMP_TRANSACTION_ID_CONNECT);
+  out = AmfOp::encode_number(out, tid);
   out = AmfOp::encode_object_begin(out);
   out = AmfOp::encode_object_named_string(out, "app", 3, app, STRLEN(app));
   out = AmfOp::encode_object_named_string(out, "swfUrl", 6, swf_url, STRLEN(swf_url));
@@ -101,11 +106,11 @@ uint8_t *RtmpPackOp::encode_connect(uint8_t *out, int len, const char *app, cons
   return out;
 }
 
-uint8_t *RtmpPackOp::encode_connect_result(uint8_t *out) {
+uint8_t *RtmpPackOp::encode_connect_result(uint8_t *out, uint32_t tid) {
   out = ENCODE_MESSAGE_HEADER(out, RTMP_CSID_OVER_CONNECTION, 190, RTMP_MSG_TYPE_ID_COMMAND_MESSAGE_AMF0, 0);
 
   out = AmfOp::encode_string(out, "_result", 7);
-  out = AmfOp::encode_number(out, RTMP_TRANSACTION_ID_CONNECT);
+  out = AmfOp::encode_number(out, tid);
   out = AmfOp::encode_object_begin(out);
   // TODO cache me
   out = AmfOp::encode_object_named_string(out, "fmsVer", 6, "FMS/3,0,1,123", 13);
@@ -122,23 +127,23 @@ uint8_t *RtmpPackOp::encode_connect_result(uint8_t *out) {
   return out;
 }
 
-uint8_t *RtmpPackOp::encode_release_stream(uint8_t *out, int len, const char *stream_name) {
+uint8_t *RtmpPackOp::encode_release_stream(uint8_t *out, int len, const char *stream_name, uint32_t tid) {
   out = ENCODE_MESSAGE_HEADER(out, RTMP_CSID_OVER_CONNECTION, len-CHUNK_HEADER_SIZE_TYPE0, RTMP_MSG_TYPE_ID_COMMAND_MESSAGE_AMF0, 0);
 
   // TODO cache me
-  out = AmfOp::encode_string(out, "releaseStream", STRLEN("releaseStream"));
-  out = AmfOp::encode_number(out, RTMP_TRANSACTION_ID_RELEASE_STREAM);
+  out = AmfOp::encode_string(out, "releaseStream", 13); // STRLEN("releaseStream")
+  out = AmfOp::encode_number(out, tid);
   out = AmfOp::encode_null(out);
   out = AmfOp::encode_string(out, stream_name, STRLEN(stream_name));
 
   return out;
 }
 
-uint8_t *RtmpPackOp::encode_fc_publish(uint8_t *out, int len, const char *stream_name) {
+uint8_t *RtmpPackOp::encode_fc_publish(uint8_t *out, int len, const char *stream_name, uint32_t tid) {
   out = ENCODE_MESSAGE_HEADER(out, RTMP_CSID_OVER_CONNECTION, len-CHUNK_HEADER_SIZE_TYPE0, RTMP_MSG_TYPE_ID_COMMAND_MESSAGE_AMF0, 0);
 
-  out = AmfOp::encode_string(out, "FCPublish", STRLEN("FCPublish"));
-  out = AmfOp::encode_number(out, RTMP_TRANSACTION_ID_FC_PUBLISH);
+  out = AmfOp::encode_string(out, "FCPublish", 9); // STRLEN("FCPublish")
+  out = AmfOp::encode_number(out, tid);
   out = AmfOp::encode_null(out);
   out = AmfOp::encode_string(out, stream_name, STRLEN(stream_name));
 
@@ -146,21 +151,21 @@ uint8_t *RtmpPackOp::encode_fc_publish(uint8_t *out, int len, const char *stream
 }
 
 
-uint8_t *RtmpPackOp::encode_create_stream(uint8_t *out) {
+uint8_t *RtmpPackOp::encode_create_stream(uint8_t *out, uint32_t tid) {
   out = ENCODE_MESSAGE_HEADER(out, RTMP_CSID_OVER_CONNECTION,
                               ENCODE_RTMP_MSG_CREATE_STREAM_RESERVE-CHUNK_HEADER_SIZE_TYPE0, RTMP_MSG_TYPE_ID_COMMAND_MESSAGE_AMF0, 0);
 
-  out = AmfOp::encode_string(out, "createStream", STRLEN("createStream"));
-  out = AmfOp::encode_number(out, RTMP_TRANSACTION_ID_CREATE_STREAM);
+  out = AmfOp::encode_string(out, "createStream", 12); // STRLEN("createStream")
+  out = AmfOp::encode_number(out, tid);
   out = AmfOp::encode_null(out);
 
   return out;
 }
 
-uint8_t *RtmpPackOp::encode_create_stream_result(uint8_t *out, int transaction_id) {
+uint8_t *RtmpPackOp::encode_create_stream_result(uint8_t *out, int tid) {
   out = ENCODE_MESSAGE_HEADER(out, RTMP_CSID_OVER_CONNECTION, 29, RTMP_MSG_TYPE_ID_COMMAND_MESSAGE_AMF0, 0);
   out = AmfOp::encode_string(out, "_result", 7);
-  out = AmfOp::encode_number(out, transaction_id);
+  out = AmfOp::encode_number(out, tid);
   out = AmfOp::encode_null(out);
   out = AmfOp::encode_number(out, RTMP_MSID);
   return out;
@@ -194,14 +199,25 @@ uint8_t *RtmpPackOp::encode_on_status_play(uint8_t *out, int stream_id) {
   return out;
 }
 
-uint8_t *RtmpPackOp::encode_publish(uint8_t *out, int len, const char *app, const char *stream_name, int stream_id) {
+uint8_t *RtmpPackOp::encode_publish(uint8_t *out, int len, const char *app, const char *stream_name, int stream_id, uint32_t tid) {
   out = ENCODE_MESSAGE_HEADER(out, RTMP_CSID_OVER_STREAM, len-CHUNK_HEADER_SIZE_TYPE0, RTMP_MSG_TYPE_ID_COMMAND_MESSAGE_AMF0, stream_id);
 
-  out = AmfOp::encode_string(out, "publish", STRLEN("publish"));
-  out = AmfOp::encode_number(out, RTMP_TRANSACTION_ID_PUBLISH);
+  out = AmfOp::encode_string(out, "publish", 7); // STRLEN("publish")
+  out = AmfOp::encode_number(out, tid);
   out = AmfOp::encode_null(out);
   out = AmfOp::encode_string(out, stream_name, STRLEN(stream_name));
   out = AmfOp::encode_string(out, app, STRLEN(app));
+
+  return out;
+}
+
+uint8_t *RtmpPackOp::encode_play(uint8_t *out, int len, const char *stream_name, int stream_id, uint32_t tid) {
+  out = ENCODE_MESSAGE_HEADER(out, RTMP_CSID_OVER_STREAM, len-CHUNK_HEADER_SIZE_TYPE0, RTMP_MSG_TYPE_ID_COMMAND_MESSAGE_AMF0, stream_id);
+
+  out = AmfOp::encode_string(out, "play", 4);
+  out = AmfOp::encode_number(out, tid);
+  out = AmfOp::encode_null(out);
+  out = AmfOp::encode_string(out, stream_name, STRLEN(stream_name));
 
   return out;
 }

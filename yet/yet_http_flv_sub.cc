@@ -100,7 +100,7 @@ void HttpFlvSub::do_send_http_headers() {
   auto self(shared_from_this());
   asio::async_write(socket_,
                     asio::buffer(FLV_HTTP_HEADERS, FLV_HTTP_HEADERS_LEN),
-                    [this, self](ErrorCode ec, std::size_t len) {
+                    [this, self](const ErrorCode &ec, std::size_t len) {
                       SNIPPET_ENTER_CB;
                       do_send_flv_header();
                     });
@@ -110,7 +110,7 @@ void HttpFlvSub::do_send_flv_header() {
   auto self(shared_from_this());
   asio::async_write(socket_,
                     asio::buffer(FLV_HEADER_BUF_13, 13),
-                    [this, self](ErrorCode ec, std::size_t len) {
+                    [this, self](const ErrorCode &ec, std::size_t len) {
                       SNIPPET_ENTER_CB;
                     });
 }
@@ -147,7 +147,7 @@ void HttpFlvSub::do_send() {
   auto self(shared_from_this());
   asio::async_write(socket_,
                     asio::buffer(buf->read_pos(), buf->readable_size()),
-                    [this, self](ErrorCode ec, std::size_t len) {
+                    [this, self](const ErrorCode &ec, std::size_t len) {
                       SNIPPET_ENTER_CB;
                       send_buffers_.pop();
                       if (!send_buffers_.empty()) { do_send(); }

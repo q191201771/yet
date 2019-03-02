@@ -1,14 +1,12 @@
 #include "yet_rtmp_handshake.h"
-#include "yet_rtmp/yet_hmac_sha256_adapter.hpp"
+#include "yet_rtmp/yet_rtmp_hmac_sha256_adapter.hpp"
 #include "yet_rtmp/yet_rtmp_amf_op.h"
 #include "chef_base/chef_stuff_op.hpp"
 
 namespace yet {
 
-// TODO refactor me after use HS as client
-
-// old style: obs rtmpdump
-// new style: ffmpeg
+// old style simple: obs rtmpdump
+// new style complex: ffmpeg vlc
 
 static constexpr std::size_t RTMP_HANDSHAKE_KEYLEN = 32;
 
@@ -16,9 +14,9 @@ static constexpr uint8_t RTMP_SERVER_VERSION[] = {
     0x0D, 0x0E, 0x0A, 0x0D
 };
 
-static constexpr uint8_t RTMP_CLIENT_VERSION[] = {
-    0x0C, 0x00, 0x0D, 0x0E
-};
+//static constexpr uint8_t RTMP_CLIENT_VERSION[] = {
+//    0x0C, 0x00, 0x0D, 0x0E
+//};
 
 static constexpr uint8_t RTMP_CLIENT_KEY[] = {
   'G', 'e', 'n', 'u', 'i', 'n', 'e', ' ', 'A', 'd', 'o', 'b', 'e', ' ',
@@ -43,92 +41,62 @@ static constexpr uint8_t RTMP_SERVER_KEY[] = {
 
 static constexpr std::size_t RTMP_SERVER_FULL_KEYLEN = sizeof(RTMP_SERVER_KEY);
 static constexpr std::size_t RTMP_SERVER_PART_KEYLEN = 36;
-static constexpr std::size_t RTMP_CLIENT_FULL_KEYLEN = sizeof(RTMP_CLIENT_KEY);
+//static constexpr std::size_t RTMP_CLIENT_FULL_KEYLEN = sizeof(RTMP_CLIENT_KEY);
 static constexpr std::size_t RTMP_CLIENT_PART_KEYLEN = 30;
 
 static bool rtmp_make_digest(const uint8_t *buf, std::size_t buf_len, const uint8_t *skip,
                              const uint8_t *key, std::size_t key_len,
                              uint8_t *dst)
 {
-  //YET_LOG_DEBUG("SHA256 key:{} len:{}", chef::stuff_op::bytes_to_hex(key, key_len, 16), key_len);
-
   HMACSHA256 crypto;
   crypto.init(key, key_len);
 
   if (skip) {
     // left
-    if (skip != buf) {
-      //YET_LOG_INFO("SHA256 left:{} len:{}", chef::stuff_op::bytes_to_hex(buf, skip-buf, 16), skip-buf);
-      //HMAC_Update(hmac, buf, skip-buf);
-      crypto.update(buf, skip-buf);
-    }
+    if (skip != buf) { crypto.update(buf, skip-buf); }
+
     // right
-    std::size_t right_len = buf + buf_len - skip - RTMP_HANDSHAKE_KEYLEN;
-    if (right_len > 0) {
-      //YET_LOG_INFO("SHA256 right:{} len:{}", chef::stuff_op::bytes_to_hex(skip+RTMP_HANDSHAKE_KEYLEN, right_len, 16), right_len);
-      //HMAC_Update(hmac, skip + RTMP_HANDSHAKE_KEYLEN, right_len);
-      //uint8_t digest2[32];
-      crypto.update(skip + RTMP_HANDSHAKE_KEYLEN, right_len);
-    }
-    //YET_LOG_INFO("SHA256 dst:{} len:{}", chef::stuff_op::bytes_to_hex(dst, 32, 16), 32);
+    auto right_len = buf + buf_len - skip - RTMP_HANDSHAKE_KEYLEN;
+    if (right_len > 0) { crypto.update(skip + RTMP_HANDSHAKE_KEYLEN, right_len); }
 
   } else {
-    //YET_LOG_INFO("SHA256 full:{} len:{}", chef::stuff_op::bytes_to_hex(buf, buf_len, 16), buf_len);
-    //HMAC_Update(hmac, buf, buf_len);
     crypto.update(buf, buf_len);
-    //uint8_t digest2[32];
-    //cryptlite::hmac<cryptlite::sha256>::calc(buf, buf_len, key, key_len, dst);
-    //YET_LOG_INFO("SHA256 dst:{} len:{}", chef::stuff_op::bytes_to_hex(dst, 32, 16), 32);
   }
 
-  //HMAC_Final(hmac, dst, &len);
-  //std::size_t dst_len;
   crypto.final(dst);
-  //YET_LOG_INFO("SHA256 dst:{}", chef::stuff_op::bytes_to_hex(dst, 32, 16));
   return true;
 }
 
 static int rtmp_find_digest(const uint8_t *buf, std::size_t buf_len, std::size_t base, const uint8_t *key, std::size_t key_len) {
-  std::size_t offs = buf[base] + buf[base+1] + buf[base+2] + buf[base+3];
+  auto offs = buf[base] + buf[base+1] + buf[base+2] + buf[base+3];
   offs = (offs % 728) + base + 4;
-  //YET_LOG_INFO("CHEFGREPME offs:{}", offs);
-  const uint8_t *skip = buf + offs;
+  auto skip = buf + offs;
 
   uint8_t digest[RTMP_HANDSHAKE_KEYLEN];
-  if (!rtmp_make_digest(buf, buf_len, skip, key, key_len, digest)) {
-    return -1;
-  }
+  if (!rtmp_make_digest(buf, buf_len, skip, key, key_len, digest)) { return -1; }
 
-  if (memcmp(digest, skip, RTMP_HANDSHAKE_KEYLEN) == 0) {
-    //YET_LOG_INFO("CHEFGREPME bingo.");
-    return offs;
-  }
-  return -1;
+  return (memcmp(digest, skip, RTMP_HANDSHAKE_KEYLEN) == 0) ? offs : -1;
 }
 
-bool RtmpHandshake::rtmp_handshake_create_challenge(uint8_t *buf, std::size_t buf_len, const uint8_t *version,
+bool RtmpHandshakeS::rtmp_handshake_create_challenge(uint8_t *buf, std::size_t buf_len, const uint8_t *version,
                                                     const uint8_t *key, std::size_t key_len)
 {
   *buf++ = RTMP_VERSION;
   timestamp_sent_s1_ = static_cast<int>(chef::stuff_op::unix_timestamp_msec() / 1000);
   AmfOp::encode_int32(buf, timestamp_sent_s1_);
   memcpy(buf+4, version, 4);
-  // TODO random
+  // CHEFTODO random
 
-  std::size_t offs = buf[8] + buf[9] + buf[10] + buf[11];
+  auto  offs = buf[8] + buf[9] + buf[10] + buf[11];
   offs = (offs % 728) + 12;
-  uint8_t *skip = (uint8_t *)buf + offs;
-  //YET_LOG_INFO("offs:{}", offs);
+  auto *skip = buf + offs;
 
-  if (!rtmp_make_digest((const uint8_t *)buf, buf_len-1, skip, key, key_len, skip)) {
-    return false;
-  }
-  return true;
+  return rtmp_make_digest((const uint8_t *)buf, buf_len-1, skip, key, key_len, skip);
 }
 
-bool RtmpHandshake::rtmp_handshake_parse_challenge(const uint8_t *buf, std::size_t buf_len,
-                                                   const uint8_t *peer_key, std::size_t peer_key_len,
-                                                   const uint8_t *key, std::size_t key_len)
+bool RtmpHandshakeS::rtmp_handshake_parse_challenge(const uint8_t *buf, std::size_t buf_len,
+                                                    const uint8_t *peer_key, std::size_t peer_key_len,
+                                                    const uint8_t *key, std::size_t key_len)
 {
   if (buf[0] != RTMP_VERSION) {
     YET_LOG_ERROR("Handle c0c1 failed since version invalid. ver:{}", buf[0]);
@@ -146,7 +114,7 @@ bool RtmpHandshake::rtmp_handshake_parse_challenge(const uint8_t *buf, std::size
     return true;
   }
   // key before digest
-  int offs = rtmp_find_digest((const uint8_t *)buf, buf_len-1, 764+8, peer_key, peer_key_len);
+  auto offs = rtmp_find_digest((const uint8_t *)buf, buf_len-1, 764+8, peer_key, peer_key_len);
   if (offs == -1) {
     // digest before key
     offs = rtmp_find_digest((const uint8_t *)buf, buf_len-1, 8, peer_key, peer_key_len);
@@ -159,7 +127,7 @@ bool RtmpHandshake::rtmp_handshake_parse_challenge(const uint8_t *buf, std::size
 
   YET_LOG_INFO("Rtmp handshake new style. offs:{}", offs);
   is_old_ = false;
-  // TODO random
+  // CHEFTODO random
 
   uint8_t digest[RTMP_HANDSHAKE_KEYLEN];
   if (!rtmp_make_digest((const uint8_t *)buf+offs, RTMP_HANDSHAKE_KEYLEN, nullptr, key, key_len, digest)) {
@@ -176,32 +144,29 @@ bool RtmpHandshake::rtmp_handshake_parse_challenge(const uint8_t *buf, std::size
   return true;
 }
 
-bool RtmpHandshake::handle_c0c1(const uint8_t *c0c1, std::size_t len) {
+bool RtmpHandshakeS::handle_c0c1(const uint8_t *c0c1, std::size_t len) {
   if (len < RTMP_C0C1_LEN) {
     YET_LOG_ERROR("Handle c0c1 failed since len too short. len:{}", len);
     return false;
   }
 
-  //YET_LOG_DEBUG("CHEFGREPME {}", chef::stuff_op::bytes_to_hex((const uint8_t *)c0c1, 13, 32));
-
   rtmp_handshake_parse_challenge(c0c1, len, RTMP_CLIENT_KEY, RTMP_CLIENT_PART_KEYLEN, RTMP_SERVER_KEY, RTMP_SERVER_FULL_KEYLEN);
 
   if (is_old_) {
     AmfOp::decode_int32(c0c1+1, len-1, &timestamp_recvd_c1_, nullptr);
-    //YET_LOG_DEBUG("timestamp_recvd_c1_:{}", timestamp_recvd_c1_);
     memcpy(s2_, c0c1+1, len-1);
   }
   return true;
 }
 
-uint8_t *RtmpHandshake::create_s0s1() {
+uint8_t *RtmpHandshakeS::create_s0s1() {
   if (is_old_) {
     s0s1_[0] = RTMP_VERSION;
     timestamp_sent_s1_ = static_cast<int>(chef::stuff_op::unix_timestamp_msec() / 1000);
     AmfOp::encode_int32(s0s1_+1, timestamp_sent_s1_);
     memset(s0s1_+5, 0, 4);
 
-    // TODO random 1528
+    // CHEFTODO random 1528
 
     return s0s1_;
   }
@@ -210,15 +175,39 @@ uint8_t *RtmpHandshake::create_s0s1() {
   return s0s1_;
 }
 
-uint8_t *RtmpHandshake::create_s2() {
+uint8_t *RtmpHandshakeS::create_s2() {
   if (is_old_) {
     AmfOp::encode_int32(s2_, timestamp_recvd_c1_);
     AmfOp::encode_int32(s2_+4, timestamp_sent_s1_);
-
     return s2_;
   }
 
   return s2_;
+}
+
+uint8_t *RtmpHandshakeC::create_c0c1() {
+  c0c1_[0] = RTMP_VERSION;
+  auto now = static_cast<int>(chef::stuff_op::unix_timestamp_msec() / 1000);
+  AmfOp::encode_int32(c0c1_+1, now);
+  memset(c0c1_+5, 0, 4);
+  // hack in yet watermark
+  c0c1_[9] = 'y'; c0c1_[10] = 'e'; c0c1_[11] = 't';
+  // CHEFTODO random
+
+  return c0c1_;
+}
+
+bool RtmpHandshakeC::handle_s0s1s2(uint8_t *s0s1s2) {
+  if (s0s1s2[0] != RTMP_VERSION) { return false; }
+
+  if (memcmp(c0c1_ + 9, s0s1s2 + RTMP_C0C1_LEN + 8, RTMP_C0C1_LEN - 9) != 0) { return false; }
+
+  memcpy(c2_, &s0s1s2[1], RTMP_C2_LEN);
+  return true;
+}
+
+uint8_t *RtmpHandshakeC::create_c2() {
+  return c2_;
 }
 
 }

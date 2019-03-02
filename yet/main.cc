@@ -23,17 +23,9 @@ int main(int argc, char **argv) {
   }
 
   auto res = yet::Config::instance()->load_conf_file(argv[1]);
-  if (!res) {
-    return -1;
-  }
+  if (!res) { return -1; }
 
   yet::Log::instance();
-
-  YET_LOG_DEBUG("debug log.");
-  YET_LOG_INFO("info log.");
-  YET_LOG_WARN("warn log.");
-  YET_LOG_ERROR("error log.");
-  YET_LOG_ASSERT(0, "assert log.");
 
 //#if defined(__linux__) || defined(__MACH__)
 //  signal(SIGINT, sig_handler);

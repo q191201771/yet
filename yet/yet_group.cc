@@ -11,11 +11,11 @@ namespace yet {
 Group::Group(const std::string &live_name)
   : live_name_(live_name)
 {
-  YET_LOG_DEBUG("Group() {}", (void *)this);
+  YET_LOG_DEBUG("[{}] new group.", (void *)this);
 }
 
 Group::~Group() {
-  YET_LOG_DEBUG("~Group() {}", (void *)this);
+  YET_LOG_DEBUG("[{} ] delete group.", (void *)this);
   if (prev_audio_header_) { delete prev_audio_header_; }
   if (prev_video_header_) { delete prev_video_header_; }
 }
@@ -52,7 +52,7 @@ HttpFlvPullPtr Group::get_http_flv_pull() {
 
 void Group::add_http_flv_sub(HttpFlvSubPtr sub) {
   //sub->set_group(shared_from_this());
-  sub->set_close_cb(std::bind(&Group::on_http_flv_close, shared_from_this(), _1));
+  sub->set_close_cb(std::bind(&Group::on_http_flv_close, this, _1));
   http_flv_subs_.insert(sub);
 }
 

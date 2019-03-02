@@ -28,6 +28,7 @@ class Config {
 
   public:
     CHEF_PROPERTY(std::string, http_flv_pull_host);
+    CHEF_PROPERTY(std::string, rtmp_pull_host);
 
   private:
     Config() {}

@@ -10,14 +10,16 @@
 #include <queue>
 #include <unordered_map>
 #include <asio.hpp>
-#include "yet.hpp"
 #include "chef_base/chef_snippet.hpp"
 #include "yet_rtmp/yet_rtmp_chunk_op.h"
 #include "yet_rtmp/yet_rtmp.hpp"
 #include "yet_rtmp/yet_rtmp_handshake.h"
+#include "yet.hpp"
+#include "yet_rtmp_base.h"
 
 namespace yet {
 
+// CHEFTODO erase me
 enum RtmpSessionType {
   RTMP_SESSION_TYPE_UNKNOWN = 1,
   RTMP_SESSION_TYPE_PUB     = 2,
@@ -58,7 +60,7 @@ class RtmpSession : public std::enable_shared_from_this<RtmpSession> {
     void do_write_s2();
     void do_read_c2();
     void do_read();
-    void read_cb(ErrorCode ec, std::size_t len);
+    void read_cb(const ErrorCode &ec, std::size_t len);
     void do_write_win_ack_size();
     void do_write_peer_bandwidth();
     void do_write_chunk_size();
@@ -72,7 +74,7 @@ class RtmpSession : public std::enable_shared_from_this<RtmpSession> {
     void do_write_on_status_play();
 
   private:
-    void complete_message_handler();
+    void complete_message_handler(RtmpStreamPtr stream);
 
     void protocol_control_message_handler();
     void set_chunk_size_handler(int val);
@@ -96,7 +98,7 @@ class RtmpSession : public std::enable_shared_from_this<RtmpSession> {
     void send_cb(const ErrorCode &ec, std::size_t len);
 
   private:
-    RtmpStreamPtr get_or_create_stream(int csid);
+    //RtmpStreamPtr get_or_create_stream(int csid);
 
   private:
     RtmpSession(const RtmpSession &) = delete;
@@ -112,20 +114,21 @@ class RtmpSession : public std::enable_shared_from_this<RtmpSession> {
     CHEF_PROPERTY_WITH_INIT_VALUE(bool, has_sent_key_frame, false);
 
   private:
-    typedef std::unordered_map<int, RtmpStreamPtr> Csid2Stream;
+    //typedef std::unordered_map<int, RtmpStreamPtr> Csid2Stream;
 
   private:
     asio::ip::tcp::socket socket_;
-    RtmpHandshake         rtmp_handshake_;
+    RtmpHandshakeS        handshake_;
     chef::buffer          read_buf_;
     chef::buffer          write_buf_;
-    Csid2Stream           csid2stream_;
-    int                   curr_csid_;
+    RtmpProtocol          rtmp_protocol_;
+    //Csid2Stream           csid2stream_;
+    //int                   curr_csid_;
     RtmpStreamPtr         curr_stream_;
-    bool                  header_done_ = false;
-    std::size_t           peer_chunk_size_ = RTMP_DEFAULT_CHUNK_SIZE;
+    //bool                  header_done_ = false;
+    //std::size_t           peer_chunk_size_ = RTMP_DEFAULT_CHUNK_SIZE;
     int                   peer_win_ack_size_ = -1;
-    double                create_stream_transaction_id_ = -1;
+    double                curr_tid_ = -1;
     std::queue<BufferPtr> send_buffers_;
     RtmpEventCb           rtmp_publish_cb_;
     RtmpEventCb           rtmp_play_cb_;

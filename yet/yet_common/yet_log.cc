@@ -10,6 +10,11 @@ std::shared_ptr<spdlog::logger> Log::instance() {
     core_ = spdlog::stdout_color_st("yet");
     core_->set_level(spdlog::level::trace);
     core_->set_pattern("[%H:%M:%S.%f] [%^%l%$] %v");
+    YET_LOG_DEBUG("debug log.");
+    YET_LOG_INFO("info log.");
+    YET_LOG_WARN("warn log.");
+    YET_LOG_ERROR("error log.");
+    YET_LOG_ASSERT(0, "assert log.");
   }
   return core_;
 }

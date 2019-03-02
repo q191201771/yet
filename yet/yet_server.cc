@@ -3,6 +3,9 @@
 #include "yet_rtmp_server.h"
 #include "yet_http_flv_server.h"
 #include "yet_group.h"
+#include "yet_config.h"
+// CHEFTODO erase me
+#include "yet_rtmp_pull.h"
 
 namespace yet {
 
@@ -19,6 +22,9 @@ Server::~Server() {
 }
 
 void Server::run_loop() {
+  auto rp = std::make_shared<RtmpPull>(io_ctx_);
+  rp->async_pull(Config::instance()->rtmp_pull_host(), 1935, "live", "110");
+
   rtmp_server_->start();
   http_flv_server_->start();
   io_ctx_.run();

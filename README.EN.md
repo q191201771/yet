@@ -4,7 +4,7 @@
 
 all star fork watch issue are welcome.
 
-aim to make a high-performance, readable, maintainable, modular live-stream server.
+aim to make a high-performance, readable, maintainable, portable live-stream server.
 
 ### ready to roll
 

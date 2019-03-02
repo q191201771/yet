@@ -57,6 +57,10 @@ bool Config::load_conf_file(const std::string &filename) {
       http_flv_pull_host_ = j["http_flv_pull_host"];
     }
 
+    if (j["rtmp_pull_host"].is_string()) {
+      rtmp_pull_host_ = j["rtmp_pull_host"];
+    }
+
   } catch(...) {
     // file not exist or syntax invalid
     YET_LOG_ERROR("load conf file failed. {}", filename);

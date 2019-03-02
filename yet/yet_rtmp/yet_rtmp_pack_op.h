@@ -10,6 +10,7 @@
 
 namespace yet {
 
+  // CHEFTODO  encode by local chunk size
   class RtmpPackOp {
     public:
       static constexpr int ENCODE_RTMP_MSG_WIN_ACK_SIZE_RESERVE               = 16;  // 12 + 4
@@ -29,6 +30,7 @@ namespace yet {
       static int encode_rtmp_msg_release_stream_reserve(const char *stream_name);
       static int encode_rtmp_msg_fc_publish_reserve(const char *stream_name);
       static int encode_rtmp_msg_publish_reserve(const char *app, const char *stream_name);
+      static int encode_rtmp_msg_play_reserve(const char *stream_name);
       static int encode_rtmp_msg_win_ack_size_reserve() { return ENCODE_RTMP_MSG_WIN_ACK_SIZE_RESERVE; }
       static int encode_rtmp_msg_chunk_size_reserve() { return ENCODE_RTMP_MSG_CHUNK_SIZE_RESERVE; }
       static int encode_rtmp_msg_create_stream_reserve() { return ENCODE_RTMP_MSG_CREATE_STREAM_RESERVE; }
@@ -47,15 +49,17 @@ namespace yet {
       static uint8_t *encode_user_control_ping_response(uint8_t *out, int timestamp);
       static uint8_t *encode_user_control_stream_begin(uint8_t *out);
       static uint8_t *encode_user_control_stream_eof(uint8_t *out);
-      static uint8_t *encode_connect(uint8_t *out, int len, const char *app, const char *swf_url, const char *tc_url);
-      static uint8_t *encode_release_stream(uint8_t *out, int len, const char *stream_name);
-      static uint8_t *encode_fc_publish(uint8_t *out, int len, const char *stream_name);
-      static uint8_t *encode_create_stream(uint8_t *out);
-      static uint8_t *encode_publish(uint8_t *out, int len, const char *app, const char *stream_name, int stream_id);
+      // CHEFTODO connect with other param
+      static uint8_t *encode_connect(uint8_t *out, int len, const char *app, const char *swf_url, const char *tc_url, uint32_t tid);
+      static uint8_t *encode_release_stream(uint8_t *out, int len, const char *stream_name, uint32_t tid);
+      static uint8_t *encode_fc_publish(uint8_t *out, int len, const char *stream_name, uint32_t tid);
+      static uint8_t *encode_create_stream(uint8_t *out, uint32_t tid);
+      static uint8_t *encode_publish(uint8_t *out, int len, const char *app, const char *stream_name, int stream_id, uint32_t tid);
+      static uint8_t *encode_play(uint8_t *out, int len, const char *stream_name, int stream_id, uint32_t tid);
 
-      static uint8_t *encode_connect_result(uint8_t *out);
+      static uint8_t *encode_connect_result(uint8_t *out, uint32_t tid);
       static uint8_t *encode_peer_bandwidth(uint8_t *out, int val);
-      static uint8_t *encode_create_stream_result(uint8_t *out, int transaction_id);
+      static uint8_t *encode_create_stream_result(uint8_t *out, int tid);
       static uint8_t *encode_on_status_publish(uint8_t *out, int stream_id);
       static uint8_t *encode_on_status_play(uint8_t *out, int stream_id);
 
