@@ -1,6 +1,9 @@
 # Yet - a rtmp / http-flv server
 
-I'm writting a rtmp server inside in 2019. All star fork watch issue are welcome. Aim to make a high-performance, readable, maintainable, portable live-stream server.
+I'm writting a c++11 rtmp server inside in 2019.
+All star fork watch issue are welcome.
+Aim to make a high-performance, readable, maintainable, portable live-stream server.
+document are comming soon.
 
 ### done almostly
 
@@ -20,7 +23,7 @@ I'm writting a rtmp server inside in 2019. All star fork watch issue are welcome
 
 ### dep
 
-All third party library are header-only, which means we don't have to config or compile them , and I've include them inside `yet`, using them directly.
+All third party library are header-only, which means we don't have to config or compile them, and I've include them inside `yet`, using them directly.
 Simply put, all you need to compile `yet` is a mordern c++11 compiler and cmake.
 
 * asio
@@ -34,6 +37,7 @@ Simply put, all you need to compile `yet` is a mordern c++11 compiler and cmake.
 ```
 # cd into yet
 $./build.sh
+$./output/bin/yet ./conf/yet.json.conf
 ```
 
 #### xcode
