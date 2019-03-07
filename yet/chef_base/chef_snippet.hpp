@@ -52,7 +52,7 @@
   public: \
     Type name() const { return name##_; } \
     void set_##name(Type v) { name##_ = v; } \
-  private: \
+  protected: \
     Type name##_;
 
 // 带初始化值的数据成员
@@ -60,12 +60,12 @@
   public: \
     Type name() const { return name##_; } \
     void set_##name(Type v) { name##_ = v; } \
-  private: \
+  protected: \
     Type name##_ = value;
 
 // 锁数据成员
 #define CHEF_PROPERTY_LOCK(LockType, lockName) \
-  private: \
+  protected: \
     LockType lockName##_;
 
 // 带锁的数据成员
@@ -73,7 +73,7 @@
   public: \
     PropertyType propertyName() { GuardType<LockType> l(lockName##_); return propertyName##_; } \
     void set_##propertyName(PropertyType v) { propertyName##_ = v; } \
-  private: \
+  protected: \
     PropertyType propertyName##_;
 
 // c++11锁

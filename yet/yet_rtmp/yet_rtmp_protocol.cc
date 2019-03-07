@@ -8,6 +8,8 @@ void RtmpProtocol::update_peer_chunk_size(std::size_t val) {
 }
 
 void RtmpProtocol::try_compose(Buffer &buf, CompleteMessageCb cb) {
+  //YET_LOG_DEBUG("try_compose. buf size:{}", buf.readable_size());
+
   for (; buf.readable_size() > 0; ) {
     auto *p = buf.read_pos();
 
@@ -132,7 +134,7 @@ void RtmpProtocol::try_compose(Buffer &buf, CompleteMessageCb cb) {
 RtmpStreamPtr RtmpProtocol::get_or_create_stream(int csid) {
   auto &stream = csid2stream_[csid];
   if (!stream) {
-    YET_LOG_DEBUG("create chunk stream. {}", csid);
+    //YET_LOG_DEBUG("create chunk stream. {}", csid);
     stream = std::make_shared<RtmpStream>();
     stream->msg = std::make_shared<Buffer>(BUF_INIT_LEN_RTMP_COMPLETE_MESSAGE, BUF_SHRINK_LEN_RTMP_COMPLETE_MESSAGE);
   }

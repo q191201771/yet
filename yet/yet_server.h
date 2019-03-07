@@ -21,21 +21,21 @@ class Server {
     void run_loop();
     void dispose();
 
-    GroupPtr get_or_create_group(const std::string &live_name);
-    GroupPtr get_group(const std::string &live_name);
+    GroupPtr get_or_create_group(const std::string &app_name, const std::string &stream_name);
+    GroupPtr get_group(const std::string &stream_name);
 
   private:
     Server(const Server &) = delete;
     Server &operator=(const Server &) = delete;
 
   private:
-    typedef std::unordered_map<std::string, GroupPtr> LiveName2Group;
+    using StreamName2Group = std::unordered_map<std::string, GroupPtr>;
 
   private:
     asio::io_context io_ctx_;
     RtmpServerPtr    rtmp_server_;
     HttpFlvServerPtr http_flv_server_;
-    LiveName2Group   live_name_2_group_;
+    StreamName2Group stream_name_2_group_;
 };
 
 }

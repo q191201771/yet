@@ -1,32 +1,48 @@
-# Yet - a high-performance rtmp / http-flv server
+# Yet - a rtmp / http-flv server
 
-9102, Am I starting write a rtmp / http-flv server yet, hah?
+I'm writting a rtmp server inside in 2019. All star fork watch issue are welcome. Aim to make a high-performance, readable, maintainable, portable live-stream server.
 
-all star fork watch issue are welcome.
+### done almostly
 
-aim to make a high-performance, readable, maintainable, portable live-stream server.
-
-### ready to roll
-
-#### 1. sub http-flv, pull http-flv
-
-sub by http-flv, pull http-flv from others (e.g. another yet or other server which support http-flv play interface) while stream not exist.
-
-#### 2. broadcast rtmp
-
-pub by rtmp, sub by rtmp, link them and broadcast av data.
+* rtmp pub: publish rtmp live stream to `yet`
+* rtmp sub: play rtmp live stream from `yet`
+* http-flv sub: play http-flv live stream from `yet`
+* rtmp pull: pull rtmp live stream from other server while client play from `yet` but stream not exist
+* rtmp push: push rtmp live stream to other server while client publish rtmp live stream to `yet`
 
 ### roadmap
 
-TODO
+~
+
+### conf file at runtime
+
+~
 
 ### dep
 
-all third party library are header-only, I've include them inside yet, which means we don't have to config or compile them, just using it directly.
+All third party library are header-only, which means we don't have to config or compile them , and I've include them inside `yet`, using them directly.
+Simply put, all you need to compile `yet` is a mordern c++11 compiler and cmake.
 
-* c++11 compiler
 * asio
 * spdlog
+* nlohmann/json
+
+### compile
+
+#### cmake
+
+```
+# cd into yet
+$./build.sh
+```
+
+#### xcode
+
+```
+# cd into yet
+$./gen_xcode.sh
+# this script will gen a document named xcode in yet dir, then using xcode open xcode/yet.xcodeproj.
+```
 
 ### env
 
@@ -44,6 +60,3 @@ compare with  nginx-rtmp-module / srs / crtmpserver and other rtmp like server
 
 ### other
 
-![http_flv_sub_pull](./doc/http_flv_sub_pull.jpg)
-
-![rtmp_broadcast](./doc/rtmp_broadcast.jpg)

@@ -1,11 +1,10 @@
 #include "yet_http_flv_server.h"
 #include <asio.hpp>
+#include "yet.hpp"
 #include "yet_config.h"
 #include "yet_server.h"
 #include "yet_group.h"
-#include "yet_http_flv_sub.h"
-#include "yet_http_flv_pull.h"
-#include "yet.hpp"
+#include "yet_http_flv_session_sub.h"
 
 namespace yet {
 
@@ -16,11 +15,11 @@ HttpFlvServer::HttpFlvServer(asio::io_context &io_ctx, const std::string &listen
   , server_(server)
   , acceptor_(io_ctx_, asio::ip::tcp::endpoint(asio::ip::address_v4::from_string(listen_ip_), listen_port_))
 {
-  YET_LOG_DEBUG("HttpFlvServer(). {}", (void *)this);
+  YET_LOG_DEBUG("[{}] [lifecycle] new HttpFlvServer.", (void *)this);
 }
 
 HttpFlvServer::~HttpFlvServer() {
-  YET_LOG_DEBUG("~HttpFlvServer(). {}", (void *)this);
+  YET_LOG_DEBUG("[{}] [lifecycle] delete HttpFlvServer.", (void *)this);
 }
 
 void HttpFlvServer::do_accept() {
@@ -51,20 +50,10 @@ void HttpFlvServer::dispose() {
 }
 
 void HttpFlvServer::on_http_flv_request(HttpFlvSubPtr sub, const std::string &uri, const std::string &app_name,
-                                        const std::string &live_name, const std::string &host)
+                                        const std::string &stream_name, const std::string &host)
 {
   (void)uri;(void)app_name;(void)host;
-  auto group = server_->get_or_create_group(live_name);
-
-  /// pull if in not exist
-  //auto in = group->get_http_flv_pull();
-  //if (in) {
-  //  YET_LOG_DEBUG("on_http_flv_request. {} in exist.", live_name);
-  //} else {
-  //  YET_LOG_DEBUG("on_http_flv_request. {} create in.", live_name);
-  //  in = std::make_shared<HttpFlvPull>(io_ctx_, Config::instance()->http_flv_pull_host(), uri);
-  //  group->set_http_flv_pull(in);
-  //}
+  auto group = server_->get_or_create_group(app_name, stream_name);
 
   group->add_http_flv_sub(sub);
 }

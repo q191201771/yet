@@ -9,9 +9,9 @@
 
 #include <cinttypes>
 #include <cstddef>
+#include <system_error>
 #include "yet_common/yet_common.hpp"
 #include "yet_common/yet_log.h"
-#include <system_error>
 
 // config
 namespace yet {
@@ -23,14 +23,13 @@ static constexpr std::size_t BUF_SHRINK_LEN_RTMP_EACH_READ          = 2147483647
 // @NOTICE len of rtmp-write only for non-av data
 static constexpr std::size_t BUF_INIT_LEN_RTMP_WRITE                = 4096;
 static constexpr std::size_t BUF_SHRINK_LEN_RTMP_WRITE              = 2147483647;
-//static constexpr std::size_t BUF_INIT_LEN_HTTP_FLV_METADATA         = 4096;
-//static constexpr std::size_t BUF_SHRINK_LEN_HTTP_FLV_METADATA       = 2147483647;
+
 }
 
 // const
 namespace yet {
 
-typedef std::error_code ErrorCode;
+using ErrorCode = std::error_code;
 
 class Server;
 class RtmpServer;
@@ -38,18 +37,20 @@ class HttpFlvServer;
 class Group;
 class HttpFlvSub;
 class HttpFlvPull;
-class RtmpSession;
-class RtmpPull;
-typedef std::shared_ptr<Server> ServerPtr;
-typedef std::shared_ptr<RtmpServer> RtmpServerPtr;
-typedef std::shared_ptr<HttpFlvServer> HttpFlvServerPtr;
-typedef std::shared_ptr<Group> GroupPtr;
-typedef std::shared_ptr<HttpFlvSub> HttpFlvSubPtr;
-typedef std::shared_ptr<HttpFlvPull> HttpFlvPullPtr;
-typedef std::shared_ptr<RtmpSession> RtmpSessionPtr;
-typedef std::shared_ptr<RtmpPull> RtmpPullPtr;
+class RtmpSessionBase;
+class RtmpSessionPubSub;
+class RtmpSessionPushPull;
+using ServerPtr              = std::shared_ptr<Server>;
+using RtmpServerPtr          = std::shared_ptr<RtmpServer> ;
+using HttpFlvServerPtr       = std::shared_ptr<HttpFlvServer>;
+using GroupPtr               = std::shared_ptr<Group>;
+using HttpFlvSubPtr          = std::shared_ptr<HttpFlvSub>;
+using HttpFlvPullPtr         = std::shared_ptr<HttpFlvPull>;
+using RtmpSessionBasePtr     = std::shared_ptr<RtmpSessionBase>;
+using RtmpSessionPubSubPtr   = std::shared_ptr<RtmpSessionPubSub>;
+using RtmpSessionPushPullPtr = std::shared_ptr<RtmpSessionPushPull>;
 
 class AmfObjectItemMap;
-typedef std::shared_ptr<AmfObjectItemMap> AmfObjectItemMapPtr;
+using AmfObjectItemMapPtr = std::shared_ptr<AmfObjectItemMap>;
 
 }

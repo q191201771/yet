@@ -1,27 +1,29 @@
 #include "yet_group.h"
-#include "yet.hpp"
-#include "yet_rtmp/yet_rtmp_pack_op.h"
 #include "yet_http_flv/yet_http_flv_pack_op.hpp"
-#include "yet_http_flv_pull.h"
-#include "yet_http_flv_sub.h"
-#include "yet_rtmp_session.h"
+#include "yet_rtmp/yet_rtmp_pack_op.h"
+#include "yet.hpp"
+#include "yet_config.h"
+#include "yet_http_flv_session_sub.h"
+#include "yet_rtmp_session_pub_sub.h"
+#include "yet_rtmp_session_push_pull.h"
 
 namespace yet {
 
-Group::Group(const std::string &live_name)
-  : live_name_(live_name)
+Group::Group(asio::io_context &io_ctx, const std::string &app_name, const std::string &stream_name)
+  : io_ctx_(io_ctx)
+  , app_name_(app_name)
+  , stream_name_(stream_name)
 {
-  YET_LOG_DEBUG("[{}] new group.", (void *)this);
+  YET_LOG_DEBUG("[{}] [lifecycle] new Group.", (void *)this);
 }
 
 Group::~Group() {
-  YET_LOG_DEBUG("[{} ] delete group.", (void *)this);
+  YET_LOG_DEBUG("[{}] [lifecycle] delete Group.", (void *)this);
   if (prev_audio_header_) { delete prev_audio_header_; }
   if (prev_video_header_) { delete prev_video_header_; }
 }
 
 void Group::dispose() {
-  if (http_flv_pull_) { http_flv_pull_->dispose(); }
   if (rtmp_pub_) { rtmp_pub_->dispose(); }
 
   for (auto &it : http_flv_subs_) { it->dispose(); }
@@ -29,73 +31,37 @@ void Group::dispose() {
 
   for (auto &it : rtmp_subs_) { it->dispose(); }
   http_flv_subs_.clear();
+
+  // CHEFTODO other session to dispose
 }
 
-void Group::set_http_flv_pull(HttpFlvPullPtr pull) {
-  pull->set_group(shared_from_this());
-  http_flv_pull_ = pull;
+void Group::add_rtmp_sub(RtmpSessionPubSubPtr sub) {
+  rtmp_subs_.insert(sub);
+
+  pull_rtmp_if_needed();
 }
 
-void Group::set_rtmp_pub(RtmpSessionPtr pub) {
-  pub->set_rtmp_av_data_cb(std::bind(&Group::on_rtmp_av_data, this, _1, _2, _3));
-  pub->set_rtmp_meta_data_cb(std::bind(&Group::on_rtmp_meta_data, this, _1, _2, _3, _4, _5));
-  rtmp_pub_ = pub;
-}
-
-void Group::reset_rtmp_pub() {
-  rtmp_pub_.reset();
-}
-
-HttpFlvPullPtr Group::get_http_flv_pull() {
-  return http_flv_pull_;
+// CHEFTODO reduce func like this
+void Group::del_rtmp_sub(RtmpSessionPubSubPtr sub) {
+  rtmp_subs_.erase(sub);
 }
 
 void Group::add_http_flv_sub(HttpFlvSubPtr sub) {
-  //sub->set_group(shared_from_this());
   sub->set_close_cb(std::bind(&Group::on_http_flv_close, this, _1));
   http_flv_subs_.insert(sub);
+
+  pull_rtmp_if_needed();
 }
 
 void Group::del_http_flv_sub(HttpFlvSubPtr sub) {
   http_flv_subs_.erase(sub);
 }
 
-void Group::add_rtmp_sub(RtmpSessionPtr sub) {
-  rtmp_subs_.insert(sub);
-}
-
-void Group::del_rtmp_sub(RtmpSessionPtr sub) {
-  rtmp_subs_.erase(sub);
-}
-
-
-void Group::on_http_flv_pull_connected() {
-
-}
-
 void Group::on_http_flv_close(HttpFlvSubPtr sub) {
   http_flv_subs_.erase(sub);
 }
 
-void Group::on_http_flv_data(BufferPtr buf, const std::vector<FlvTagInfo> &tis) {
-  for (auto sub : http_flv_subs_) {
-    sub->async_send(buf, tis);
-  }
-}
-
-BufferPtr Group::get_metadata() {
-  return http_flv_pull_ ? http_flv_pull_->get_metadata() : nullptr;
-}
-
-BufferPtr Group::get_avc_header() {
-  return http_flv_pull_ ? http_flv_pull_->get_avc_header() : nullptr;
-}
-
-BufferPtr Group::get_aac_header() {
-  return http_flv_pull_ ? http_flv_pull_->get_aac_header() : nullptr;
-}
-
-void Group::on_rtmp_meta_data(RtmpSessionPtr pub, BufferPtr msg, uint8_t *meta_pos, std::size_t meta_size, AmfObjectItemMapPtr meta) {
+void Group::on_rtmp_meta_data(RtmpSessionBasePtr pub, BufferPtr msg, uint8_t *meta_pos, std::size_t meta_size, AmfObjectItemMapPtr meta) {
   (void)pub; (void)msg; (void)meta;
 
   RtmpHeader h;
@@ -111,6 +77,10 @@ void Group::on_rtmp_meta_data(RtmpSessionPtr pub, BufferPtr msg, uint8_t *meta_p
     sub->async_send(rtmp_chunked_metadata_);
   }
 
+  if (rtmp_push_ && rtmp_push_->is_ready()) {
+    rtmp_push_->async_send(rtmp_chunked_metadata_);
+  }
+
   http_flv_metadata_ = HttpFlvPackOp::pack_tag(meta_pos, meta_size, FLV_TAG_HEADER_TYPE_SCRIPT_DATA, 0);
   YET_LOG_DEBUG("cache http flv meta data.");
 
@@ -120,84 +90,92 @@ void Group::on_rtmp_meta_data(RtmpSessionPtr pub, BufferPtr msg, uint8_t *meta_p
   }
 }
 
-void Group::on_rtmp_av_data(RtmpSessionPtr pub, BufferPtr msg, const RtmpHeader &h) {
-  (void)pub;
+void Group::send_av_data(RtmpSessionBasePtr out, BufferPtr msg, const RtmpHeader &h, BufferPtr delta_chunks, BufferPtr abs_chunks) {
+  if (!out->has_sent_metadata()) {
+    if (rtmp_chunked_metadata_) {
+      YET_LOG_DEBUG("sent cached metadata.");
+      out->async_send(rtmp_chunked_metadata_);
+      out->set_has_sent_metadata(true);
+    }
+  }
+  if (!out->has_sent_video()) {
+    if (rtmp_chunked_avc_header_) {
+      YET_LOG_DEBUG("sent cached avc header.");
+      out->async_send(rtmp_chunked_avc_header_);
+      out->set_has_sent_video(true);
+    }
+  }
+  if (!out->has_sent_audio()) {
+    if (rtmp_chunked_aac_header_) {
+      YET_LOG_DEBUG("sent cached aac header.");
+      out->async_send(rtmp_chunked_aac_header_);
+      out->set_has_sent_audio(true);
+    }
+  }
+
+  if (!out->has_sent_key_frame()) {
+    if (h.msg_type_id == RTMP_MSG_TYPE_ID_AUDIO) {
+      //YET_LOG_DEBUG("audio waiting key frame.");
+      return;
+    } else if (h.msg_type_id == RTMP_MSG_TYPE_ID_VIDEO) {
+      if (msg->readable_size() > 1 && msg->read_pos()[0] == 0x17) {
+        out->set_has_sent_key_frame(true);
+      } else {
+        //YET_LOG_DEBUG("video waiting key frame.");
+        return;
+      }
+    }
+  }
+
   RtmpHeader *prev = h.msg_type_id == RTMP_MSG_TYPE_ID_AUDIO ? prev_audio_header_ : prev_video_header_;
+
+  if ((h.msg_type_id == RTMP_MSG_TYPE_ID_AUDIO)) {
+    if (out->has_sent_audio()) {
+      if (!delta_chunks) {
+        delta_chunks = RtmpChunkOp::msg2chunks(msg, h, prev, RTMP_LOCAL_CHUNK_SIZE);
+      }
+      //YET_LOG_DEBUG("send audio delta.");
+      out->async_send(delta_chunks);
+    } else {
+      if (!abs_chunks) {
+        abs_chunks = RtmpChunkOp::msg2chunks(msg, h, nullptr, RTMP_LOCAL_CHUNK_SIZE);
+      }
+      out->async_send(abs_chunks);
+
+      //YET_LOG_DEBUG("send audio abs.");
+      out->set_has_sent_audio(true);
+    }
+  } else {
+    if (out->has_sent_video()) {
+      if (!delta_chunks) {
+        delta_chunks = RtmpChunkOp::msg2chunks(msg, h, prev, RTMP_LOCAL_CHUNK_SIZE);
+      }
+      //YET_LOG_DEBUG("send video delta.");
+      out->async_send(delta_chunks);
+    } else {
+      if (!abs_chunks) {
+        abs_chunks = RtmpChunkOp::msg2chunks(msg, h, nullptr, RTMP_LOCAL_CHUNK_SIZE);
+      }
+      //YET_LOG_DEBUG("send video abs.");
+      out->async_send(abs_chunks);
+
+      out->set_has_sent_video(true);
+    }
+  }
+}
+
+void Group::on_rtmp_av_data(RtmpSessionBasePtr pub, BufferPtr msg, const RtmpHeader &h) {
+  (void)pub;
   BufferPtr delta_chunks;
   BufferPtr abs_chunks;
 
   for (auto &sub : rtmp_subs_) {
-    if (!sub->has_sent_metadata()) {
-      if (rtmp_chunked_metadata_) {
-        YET_LOG_DEBUG("sent cached metadata.");
-        sub->async_send(rtmp_chunked_metadata_);
-        sub->set_has_sent_metadata(true);
-      }
-    }
-    if (!sub->has_sent_video()) {
-      if (rtmp_chunked_avc_header_) {
-        YET_LOG_DEBUG("sent cached avc header.");
-        sub->async_send(rtmp_chunked_avc_header_);
-        sub->set_has_sent_video(true);
-      }
-    }
-    if (!sub->has_sent_audio()) {
-      if (rtmp_chunked_aac_header_) {
-        YET_LOG_DEBUG("sent cached aac header.");
-        sub->async_send(rtmp_chunked_aac_header_);
-        sub->set_has_sent_audio(true);
-      }
-    }
-
-    if (!sub->has_sent_key_frame()) {
-      if (h.msg_type_id == RTMP_MSG_TYPE_ID_AUDIO) {
-        //YET_LOG_DEBUG("audio waiting key frame.");
-        continue;
-      } else if (h.msg_type_id == RTMP_MSG_TYPE_ID_VIDEO) {
-        if (msg->readable_size() > 1 && msg->read_pos()[0] == 0x17) {
-          sub->set_has_sent_key_frame(true);
-        } else {
-          //YET_LOG_DEBUG("video waiting key frame.");
-          continue;
-        }
-      }
-    }
-
-    if ((h.msg_type_id == RTMP_MSG_TYPE_ID_AUDIO)) {
-      if (sub->has_sent_audio()) {
-        if (!delta_chunks) {
-          delta_chunks = RtmpChunkOp::msg2chunks(msg, h, prev, RTMP_LOCAL_CHUNK_SIZE);
-        }
-        //YET_LOG_DEBUG("send audio delta.");
-        sub->async_send(delta_chunks);
-      } else {
-        if (!abs_chunks) {
-          abs_chunks = RtmpChunkOp::msg2chunks(msg, h, nullptr, RTMP_LOCAL_CHUNK_SIZE);
-        }
-        sub->async_send(abs_chunks);
-
-        //YET_LOG_DEBUG("send audio abs.");
-        sub->set_has_sent_audio(true);
-      }
-    } else {
-      if (sub->has_sent_video()) {
-        if (!delta_chunks) {
-          delta_chunks = RtmpChunkOp::msg2chunks(msg, h, prev, RTMP_LOCAL_CHUNK_SIZE);
-        }
-        //YET_LOG_DEBUG("send video delta.");
-        sub->async_send(delta_chunks);
-      } else {
-        if (!abs_chunks) {
-          abs_chunks = RtmpChunkOp::msg2chunks(msg, h, nullptr, RTMP_LOCAL_CHUNK_SIZE);
-        }
-        //YET_LOG_DEBUG("send video abs.");
-        sub->async_send(abs_chunks);
-
-        sub->set_has_sent_video(true);
-      }
-    }
-
+    send_av_data(sub, msg, h, delta_chunks, abs_chunks);
   } // rtmp subs loop
+
+  if (rtmp_push_ && rtmp_push_->is_ready()) {
+    send_av_data(rtmp_push_, msg, h, delta_chunks, abs_chunks);
+  }
 
   // CHEFTODO dup code with rtmp subs loop
   for (auto &sub : http_flv_subs_) {
@@ -266,7 +244,7 @@ void Group::on_rtmp_av_data(RtmpSessionPtr pub, BufferPtr msg, const RtmpHeader 
 void Group::cache_aac_header(BufferPtr msg, const RtmpHeader &h) {
   uint8_t *rp = msg->read_pos();
   if (h.msg_type_id == RTMP_MSG_TYPE_ID_AUDIO && msg->readable_size() > 2 && (rp[0] >> 4) == 0xa && rp[1] == 0) {
-    YET_LOG_DEBUG("cache aac header.");
+    //YET_LOG_DEBUG("cache aac header.");
     rtmp_chunked_aac_header_ = RtmpChunkOp::msg2chunks(msg, h, nullptr, RTMP_LOCAL_CHUNK_SIZE);
 
     http_flv_aac_header_ = HttpFlvPackOp::pack_tag(rp, msg->readable_size(), FLV_TAG_HEADER_TYPE_AUDIO, 0);
@@ -276,26 +254,37 @@ void Group::cache_aac_header(BufferPtr msg, const RtmpHeader &h) {
 void Group::cache_avc_header(BufferPtr msg, const RtmpHeader &h) {
   uint8_t *rp = msg->read_pos();
   if (h.msg_type_id == RTMP_MSG_TYPE_ID_VIDEO && msg->readable_size() > 2 && rp[0] == 0x17 && rp[1] == 0x0) {
-    YET_LOG_DEBUG("cache avc header.");
+    //YET_LOG_DEBUG("cache avc header.");
     rtmp_chunked_avc_header_ = RtmpChunkOp::msg2chunks(msg, h, nullptr, RTMP_LOCAL_CHUNK_SIZE);
 
     http_flv_avc_header_ = HttpFlvPackOp::pack_tag(rp, msg->readable_size(), FLV_TAG_HEADER_TYPE_VIDEO, 0);
   }
 }
 
-void Group::on_rtmp_publish() {
-  std::size_t len = RtmpPackOp::encode_rtmp_msg_user_control_stream_begin_reserve();
-  BufferPtr buf = std::make_shared<Buffer>(len);
+void Group::on_rtmp_pub_start(RtmpSessionPubSubPtr pub) {
+  pub->set_rtmp_av_data_cb(std::bind(&Group::on_rtmp_av_data, this, _1, _2, _3));
+  pub->set_rtmp_meta_data_cb(std::bind(&Group::on_rtmp_meta_data, this, _1, _2, _3, _4, _5));
+  rtmp_pub_ = pub;
+
+  auto len = RtmpPackOp::encode_user_control_stream_begin_reserve();
+  auto buf = std::make_shared<Buffer>(len);
   RtmpPackOp::encode_user_control_stream_begin(buf->write_pos());
   buf->seek_write_pos(len);
   for (auto sub : rtmp_subs_) {
     sub->async_send(buf);
   }
+
+  // CHEFTODO should we push if pull???
+  if (Config::instance()->push_rtmp_if_pub() && !rtmp_push_ && rtmp_pub_) {
+    rtmp_push_ = RtmpSessionPushPull::create_push(io_ctx_);
+    rtmp_push_->async_start(Config::instance()->rtmp_push_host(), Config::instance()->rtmp_push_port(), rtmp_pub_->app_name(),
+                            rtmp_pub_->stream_name());
+  }
 }
 
-void Group::on_rtmp_publish_stop() {
-  std::size_t len = RtmpPackOp::encode_rtmp_msg_user_control_stream_eof_reserve();
-  BufferPtr buf = std::make_shared<Buffer>(len);
+void Group::on_rtmp_pub_stop() {
+  auto len = RtmpPackOp::encode_user_control_stream_eof_reserve();
+  auto buf = std::make_shared<Buffer>(len);
   RtmpPackOp::encode_user_control_stream_eof(buf->write_pos());
   buf->seek_write_pos(len);
   for (auto sub : rtmp_subs_) {
@@ -303,9 +292,29 @@ void Group::on_rtmp_publish_stop() {
   }
 }
 
-void Group::on_rtmp_session_close(RtmpSessionPtr session) {
-       if (session->type() == RTMP_SESSION_TYPE_PUB) { reset_rtmp_pub(); }
-  else if (session->type() == RTMP_SESSION_TYPE_SUB) { del_rtmp_sub(session); }
+void Group::on_rtmp_session_close(RtmpSessionBasePtr session) {
+  // CHEFTODO re-push re-pull?
+  switch (session->type()) {
+  case RtmpSessionType::PUB:  rtmp_pub_.reset(); break;
+  case RtmpSessionType::SUB:  del_rtmp_sub(session->cast_to_pub_sub()); break;
+  case RtmpSessionType::PULL: rtmp_pull_.reset(); break;
+  case RtmpSessionType::PUSH: rtmp_push_.reset(); break;
+  default:                    YET_LOG_ASSERT(0, "invalid.");
+  }
+}
+
+bool Group::has_in() {
+  return rtmp_pub_ || rtmp_pull_;
+}
+
+void Group::pull_rtmp_if_needed() {
+  if (Config::instance()->pull_rtmp_if_stream_not_exist() && !has_in()) {
+    rtmp_pull_ = RtmpSessionPushPull::create_pull(io_ctx_);
+    rtmp_pull_->async_start(Config::instance()->rtmp_pull_host(), Config::instance()->rtmp_pull_port(), app_name_, stream_name_);
+    rtmp_pull_->set_rtmp_session_close_cb(std::bind(&Group::on_rtmp_session_close, this, _1));
+    rtmp_pull_->set_rtmp_meta_data_cb(std::bind(&Group::on_rtmp_meta_data, this, _1, _2, _3, _4, _5));
+    rtmp_pull_->set_rtmp_av_data_cb(std::bind(&Group::on_rtmp_av_data, this, _1, _2, _3));
+  }
 }
 
 }

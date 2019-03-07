@@ -1,10 +1,11 @@
-#include "yet_http_flv_sub.h"
+#include "yet_http_flv_session_sub.h"
 #include <string>
 #include <asio.hpp>
-#include "yet_http_flv_pull.h"
-#include "yet.hpp"
 #include "chef_base/chef_strings_op.hpp"
 #include "chef_base/chef_stuff_op.hpp"
+#include "yet.hpp"
+#include "yet_http_flv/yet_http_flv.hpp"
+//#include "yet_http_flv_pull.h"
 
 // CHEFTODO dup code with yet_rtmp_session.cc
 #define SNIPPET_ENTER_CB \
@@ -28,11 +29,11 @@ HttpFlvSub::HttpFlvSub(asio::ip::tcp::socket socket)
   : socket_(std::move(socket))
   , request_buf_(1024)
 {
-  YET_LOG_DEBUG("[{}] new HttpFlvSub.", (void *)this);
+  YET_LOG_DEBUG("[{}] [lifecycle] new HttpFlvSub.", (void *)this);
 }
 
 HttpFlvSub::~HttpFlvSub() {
-  YET_LOG_DEBUG("[{}] delete HttpFlvSub.", (void *)this);
+  YET_LOG_DEBUG("[{}] [lifecycle] delete HttpFlvSub.", (void *)this);
 }
 
 void HttpFlvSub::set_sub_cb(HttpFlvSubCb cb) { sub_cb_ = cb; }
@@ -51,7 +52,7 @@ void HttpFlvSub::request_handler(const ErrorCode &ec, std::size_t len) {
   std::string status_line;
   std::string uri;
   std::string app_name;
-  std::string live_name;
+  std::string stream_name;
   std::string host;
 
   std::istream request_stream(&request_buf_);
@@ -72,7 +73,7 @@ void HttpFlvSub::request_handler(const ErrorCode &ec, std::size_t len) {
     return;
   }
   app_name = ukv[ukv.size()-2];
-  live_name = chef::strings_op::trim_suffix(ukv[ukv.size()-1], ".flv");
+  stream_name = chef::strings_op::trim_suffix(ukv[ukv.size()-1], ".flv");
 
   std::string header;
   while (std::getline(request_stream, header) && !header.empty() && header != "\r") {
@@ -89,9 +90,9 @@ void HttpFlvSub::request_handler(const ErrorCode &ec, std::size_t len) {
       break;
     }
   }
-  YET_LOG_DEBUG("[{}] uri:{}, app:{}, live:{}, host:{}", (void *)this, uri, app_name, live_name, host);
+  YET_LOG_DEBUG("[{}] uri:{}, app:{}, live:{}, host:{}", (void *)this, uri, app_name, stream_name, host);
 
-  if (sub_cb_) { sub_cb_(shared_from_this(), uri, app_name, live_name, host); }
+  if (sub_cb_) { sub_cb_(shared_from_this(), uri, app_name, stream_name, host); }
 
   do_send_http_headers();
 }
@@ -119,27 +120,6 @@ void HttpFlvSub::async_send(BufferPtr buf) {
   auto is_empty = send_buffers_.empty();
   send_buffers_.push(buf);
   if (is_empty) { do_send(); }
-}
-
-void HttpFlvSub::async_send(BufferPtr buf, const std::vector<FlvTagInfo> &tis) {
-  if (!sent_first_key_frame_) {
-    if (tis.empty()) { return; }
-
-    for (auto &ti : tis) {
-      if (ti.tag_type == FLVTAGTYPE_VIDEO) {
-        if (*(ti.tag_pos + 11) == 0x17) {
-          send_buffers_.push(std::make_shared<Buffer>(ti.tag_pos, buf->write_pos()-ti.tag_pos));
-          do_send();
-          sent_first_key_frame_ = true;
-          YET_LOG_DEBUG("key");
-          break;
-        }
-      }
-    }
-    return;
-  }
-
-  async_send(buf);
 }
 
 void HttpFlvSub::do_send() {

@@ -12,8 +12,8 @@
 
 namespace yet {
 
-typedef chef::buffer Buffer;
-typedef std::shared_ptr<Buffer> BufferPtr;
+using Buffer = chef::buffer;
+using BufferPtr = std::shared_ptr<Buffer>;
 
 using std::placeholders::_1;
 using std::placeholders::_2;

@@ -10,7 +10,7 @@
 #include <string>
 #include <asio.hpp>
 #include "yet.hpp"
-#include "yet_http_flv_sub.h"
+#include "yet_http_flv_session_sub.h"
 
 namespace yet {
 
@@ -30,7 +30,7 @@ class HttpFlvServer : public std::enable_shared_from_this<HttpFlvServer>
 
   private:
     void on_http_flv_request(HttpFlvSubPtr sub, const std::string &uri, const std::string &app_name,
-                             const std::string &live_name, const std::string &host);
+                             const std::string &stream_name, const std::string &host);
 
   private:
     HttpFlvServer(const HttpFlvServer &) = delete;

@@ -44,7 +44,7 @@ class HMACSHA256 : public HMACSHA256_static<void> {
   #endif
       }
 
-      HMAC_Init_ex(hmac_, key, key_len, EVP_sha256(), NULL);
+      HMAC_Init_ex(hmac_, key, key_len, EVP_sha256(), nullptr);
 #elif defined(YET_HMAC_SHA256_CHEF)
       ctx_ = std::make_shared<chef::crypto_hmac_sha256>(key, key_len);
 #endif

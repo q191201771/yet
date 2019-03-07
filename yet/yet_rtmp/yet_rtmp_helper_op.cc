@@ -15,12 +15,12 @@ bool RtmpHelperOp::resolve_rtmp_url(const std::string &url, RtmpUrlStuff &out) {
 
   out.tcurl = url.substr(0, pos);
   out.swfurl = out.tcurl;
-  out.live_name_with_full_param = url.substr(pos+1);
-  pos = out.live_name_with_full_param.find("?");
+  out.stream_name_with_full_param = url.substr(pos+1);
+  pos = out.stream_name_with_full_param.find("?");
   if (pos == std::string::npos) {
-    out.live_name = out.live_name_with_full_param;
+    out.stream_name = out.stream_name_with_full_param;
   } else {
-    out.live_name = out.live_name_with_full_param.substr(0, pos);
+    out.stream_name = out.stream_name_with_full_param.substr(0, pos);
   }
 
   part = out.tcurl;

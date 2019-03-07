@@ -19,8 +19,11 @@ static constexpr std::size_t BUF_INIT_LEN_RTMP_COMPLETE_MESSAGE   = 16384;
 static constexpr std::size_t BUF_SHRINK_LEN_RTMP_COMPLETE_MESSAGE = 2147483647;
 
 static constexpr uint32_t RTMP_TRANSACTION_ID_PUSH_PULL_CONNECT       = 1;
-static constexpr uint32_t RTMP_TRANSACTION_ID_PUSH_PULL_CREATE_STREAM = 2;
-static constexpr uint32_t RTMP_TRANSACTION_ID_PUSH_PULL_PLAY          = 3;
+static constexpr uint32_t RTMP_TRANSACTION_ID_PULL_CREATE_STREAM      = 2;
+static constexpr uint32_t RTMP_TRANSACTION_ID_PULL_PLAY               = 3;
+static constexpr uint32_t RTMP_TRANSACTION_ID_PUSH_RELEASE_STREAM     = 2;
+static constexpr uint32_t RTMP_TRANSACTION_ID_PUSH_CREATE_STREAM      = 4;
+static constexpr uint32_t RTMP_TRANSACTION_ID_PUSH_PUBLISH            = 5;
 
 }
 
@@ -103,7 +106,7 @@ struct RtmpStream {
   uint32_t    timestamp_abs;
 };
 
-typedef std::shared_ptr<RtmpStream> RtmpStreamPtr;
+using RtmpStreamPtr = std::shared_ptr<RtmpStream>;
 
 }
 

@@ -1,8 +1,8 @@
 #include "yet_config.h"
-#include "yet_common/yet_log.h"
 #include <iostream>
 #include <fstream>
 #include <nlohmann/json.hpp>
+#include "yet_common/yet_log.h"
 
 using json = nlohmann::json;
 
@@ -53,12 +53,22 @@ bool Config::load_conf_file(const std::string &filename) {
     SNIPPET_ENSURE_ATTR_NUMBER_EXIST(j, "http_flv_server_port");
     http_flv_server_port_ = j["http_flv_server_port"];
 
-    if (j["http_flv_pull_host"].is_string()) {
-      http_flv_pull_host_ = j["http_flv_pull_host"];
-    }
-
     if (j["rtmp_pull_host"].is_string()) {
       rtmp_pull_host_ = j["rtmp_pull_host"];
+      pull_rtmp_if_stream_not_exist_ = true;
+    }
+
+    if (j["rtmp_pull_port"].is_number()) {
+      rtmp_pull_port_ = j["rtmp_pull_port"];
+    }
+
+    if (j["rtmp_push_host"].is_string()) {
+      rtmp_push_host_ = j["rtmp_push_host"];
+      push_rtmp_if_pub_ = true;
+    }
+
+    if (j["rtmp_push_port"].is_number()) {
+      rtmp_push_port_ = j["rtmp_push_port"];
     }
 
   } catch(...) {

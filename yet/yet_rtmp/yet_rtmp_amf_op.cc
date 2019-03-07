@@ -113,7 +113,7 @@ uint8_t *AmfOp::encode_ecma_array_end(uint8_t *out) {
 }
 
 uint8_t *AmfOp::decode_boolean_with_type(const uint8_t *in, std::size_t valid_len, bool *out, std::size_t *used_len) {
-  if (!in || valid_len < 2 || !out || *in != Amf0DataType_BOOLEAN) { return NULL; }
+  if (!in || valid_len < 2 || !out || *in != Amf0DataType_BOOLEAN) { return nullptr; }
 
   *out = (*(in+1) == 0x01);
   if (used_len) { *used_len = 2; }
@@ -122,7 +122,7 @@ uint8_t *AmfOp::decode_boolean_with_type(const uint8_t *in, std::size_t valid_le
 }
 
 uint8_t *AmfOp::decode_number_with_type(const uint8_t *in, std::size_t valid_len, double *out, std::size_t *used_len) {
-  if (!in || valid_len < 9 || !out || (*in != Amf0DataType_NUMBER)) { return NULL; }
+  if (!in || valid_len < 9 || !out || (*in != Amf0DataType_NUMBER)) { return nullptr; }
 
   uint8_t *p = (uint8_t *)out;
   p[0] = in[8];
@@ -139,7 +139,7 @@ uint8_t *AmfOp::decode_number_with_type(const uint8_t *in, std::size_t valid_len
 }
 
 uint8_t *AmfOp::decode_int16(const uint8_t *in, std::size_t valid_len, int32_t *out, std::size_t *used_len) {
-  if (!in || valid_len < 2 || !out) { return NULL; }
+  if (!in || valid_len < 2 || !out) { return nullptr; }
 
   uint8_t *p = (uint8_t *)out;
   *p++ = in[1];
@@ -152,7 +152,7 @@ uint8_t *AmfOp::decode_int16(const uint8_t *in, std::size_t valid_len, int32_t *
 }
 
 uint8_t *AmfOp::decode_int24(const uint8_t *in, std::size_t valid_len, int32_t *out, std::size_t *used_len) {
-  if (!in || valid_len < 3 || !out) { return NULL; }
+  if (!in || valid_len < 3 || !out) { return nullptr; }
 
   uint8_t *p = (uint8_t *)out;
   *p++ = in[2];
@@ -165,7 +165,7 @@ uint8_t *AmfOp::decode_int24(const uint8_t *in, std::size_t valid_len, int32_t *
 }
 
 uint8_t *AmfOp::decode_int32(const uint8_t *in, std::size_t valid_len, int32_t *out, std::size_t *used_len) {
-  if (!in || valid_len < 4 || !out) { return NULL; }
+  if (!in || valid_len < 4 || !out) { return nullptr; }
 
   uint8_t *p = (uint8_t *)out;
   *p++ = in[3];
@@ -178,7 +178,7 @@ uint8_t *AmfOp::decode_int32(const uint8_t *in, std::size_t valid_len, int32_t *
 }
 
 uint8_t *AmfOp::decode_int32_le(const uint8_t *in, std::size_t valid_len, int32_t *out, std::size_t *used_len) {
-  if (!in || valid_len < 4 || !out) { return NULL; }
+  if (!in || valid_len < 4 || !out) { return nullptr; }
 
   uint8_t *p = (uint8_t *)out;
   *p++ = in[0];
@@ -191,10 +191,10 @@ uint8_t *AmfOp::decode_int32_le(const uint8_t *in, std::size_t valid_len, int32_
 }
 
 uint8_t *AmfOp::decode_string(const uint8_t *in, std::size_t valid_len, char **out, std::size_t *str_len, std::size_t *used_len) {
-  if (!in || valid_len < 2 || !str_len) { return NULL; }
+  if (!in || valid_len < 2 || !str_len) { return nullptr; }
 
   *str_len = (in[0] << 8) + in[1];
-  if (*str_len > valid_len-2) { return NULL; }
+  if (*str_len > valid_len-2) { return nullptr; }
 
   *out = (char *)in + 2;
   if (used_len) { *used_len = *str_len + 2; }
@@ -203,12 +203,12 @@ uint8_t *AmfOp::decode_string(const uint8_t *in, std::size_t valid_len, char **o
 }
 
 uint8_t *AmfOp::decode_string_with_type(const uint8_t *in, std::size_t valid_len, char **out, std::size_t *str_len, std::size_t *used_len) {
-  if (!in || valid_len < 3 || !str_len) { return NULL; }
+  if (!in || valid_len < 3 || !str_len) { return nullptr; }
 
-  if (in[0] != Amf0DataType_STRING) { return NULL; }
+  if (in[0] != Amf0DataType_STRING) { return nullptr; }
 
   uint8_t *ret = decode_string(in+1, valid_len-1, out, str_len, used_len);
-  if (ret == NULL) { return NULL; }
+  if (ret == nullptr) { return nullptr; }
 
   if (used_len) { (*used_len)++; }
 

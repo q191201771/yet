@@ -13,7 +13,7 @@ namespace yet {
 
 class RtmpProtocol {
   public:
-    typedef std::function<void(RtmpStreamPtr stream)> CompleteMessageCb;
+    using CompleteMessageCb = std::function<void(RtmpStreamPtr stream)>;
 
   public:
     //void set_complete_message_cb(CompleteMessageCb cb);
@@ -29,7 +29,7 @@ class RtmpProtocol {
     RtmpStreamPtr get_or_create_stream(int csid);
 
   private:
-    typedef std::unordered_map<int, RtmpStreamPtr> Csid2Stream;
+    using Csid2Stream = std::unordered_map<int, RtmpStreamPtr>;
 
   private:
     std::size_t       peer_chunk_size_ = RTMP_DEFAULT_CHUNK_SIZE;

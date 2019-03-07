@@ -12,7 +12,7 @@
 
 namespace yet {
 
-int RtmpPackOp::encode_rtmp_msg_connect_reserve(const char *app, const char *swf_url, const char *tc_url) {
+int RtmpPackOp::encode_connect_reserve(const char *app, const char *swf_url, const char *tc_url) {
   // 10 -> "connect", 9 -> Number, 1 -> Obj begin, 3 -> Obj end
   return CHUNK_HEADER_SIZE_TYPE0 + 10 + 9 + 1 +
       (app ? AmfOp::encode_object_named_string_reserve(3, STRLEN(app)) : 0) +
@@ -21,23 +21,23 @@ int RtmpPackOp::encode_rtmp_msg_connect_reserve(const char *app, const char *swf
       3;
 }
 
-int RtmpPackOp::encode_rtmp_msg_release_stream_reserve(const char *stream_name) {
-  // 16 -> "releaseStream", 0 -> Number, 1 -> Null
+int RtmpPackOp::encode_release_stream_reserve(const char *stream_name) {
+  // 16 -> "releaseStream", 9 -> Number, 1 -> Null
   return CHUNK_HEADER_SIZE_TYPE0 + 16 + 9 + 1 + AmfOp::encode_string_reserve(STRLEN(stream_name));
 }
 
-int RtmpPackOp::encode_rtmp_msg_fc_publish_reserve(const char *stream_name) {
-  // 12 -> "FCPublish", 0 -> Number, 1 -> Null
+int RtmpPackOp::encode_fc_publish_reserve(const char *stream_name) {
+  // 12 -> "FCPublish", 9 -> Number, 1 -> Null
   return CHUNK_HEADER_SIZE_TYPE0 + 12 + 9 + 1 + AmfOp::encode_string_reserve(STRLEN(stream_name));
 }
 
-int RtmpPackOp::encode_rtmp_msg_publish_reserve(const char *app, const char *stream_name) {
+int RtmpPackOp::encode_publish_reserve(const char *app, const char *stream_name) {
   // 10 -> "publish", 9 -> Number, 1 -> Null
   return CHUNK_HEADER_SIZE_TYPE0 + 10 + 9 + 1 + AmfOp::encode_string_reserve(STRLEN(app)) +
          AmfOp::encode_string_reserve(STRLEN(stream_name));
 }
 
-int RtmpPackOp::encode_rtmp_msg_play_reserve(const char *stream_name) {
+int RtmpPackOp::encode_play_reserve(const char *stream_name) {
   // 7 -> "play", 9 -> Number, 1 -> Null
   return CHUNK_HEADER_SIZE_TYPE0 + 7 + 9 + 1 + AmfOp::encode_string_reserve(STRLEN(stream_name));
 }
@@ -153,7 +153,7 @@ uint8_t *RtmpPackOp::encode_fc_publish(uint8_t *out, int len, const char *stream
 
 uint8_t *RtmpPackOp::encode_create_stream(uint8_t *out, uint32_t tid) {
   out = ENCODE_MESSAGE_HEADER(out, RTMP_CSID_OVER_CONNECTION,
-                              ENCODE_RTMP_MSG_CREATE_STREAM_RESERVE-CHUNK_HEADER_SIZE_TYPE0, RTMP_MSG_TYPE_ID_COMMAND_MESSAGE_AMF0, 0);
+                              ENCODE_CREATE_STREAM_RESERVE-CHUNK_HEADER_SIZE_TYPE0, RTMP_MSG_TYPE_ID_COMMAND_MESSAGE_AMF0, 0);
 
   out = AmfOp::encode_string(out, "createStream", 12); // STRLEN("createStream")
   out = AmfOp::encode_number(out, tid);

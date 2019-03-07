@@ -1,5 +1,5 @@
 /**
- * @file   yet_http_flv_sub.h
+ * @file   yet_http_flv_session_sub.h
  * @author pengrl
  *
  */
@@ -10,16 +10,15 @@
 #include <asio.hpp>
 #include "chef_base/chef_snippet.hpp"
 #include "yet.hpp"
-#include "yet_http_flv/yet_http_flv_buffer_t.hpp"
 
 namespace yet {
 
 class HttpFlvSub : public std::enable_shared_from_this<HttpFlvSub> {
   public:
-    typedef std::function<void(HttpFlvSubPtr http_flv_sub, const std::string &uri, const std::string &app_name,
-                               const std::string &live_name, const std::string &host)> HttpFlvSubCb;
+    using HttpFlvSubCb = std::function<void(HttpFlvSubPtr http_flv_sub, const std::string &uri, const std::string &app_name,
+                                            const std::string &stream_name, const std::string &host)>;
 
-    typedef std::function<void(HttpFlvSubPtr http_flv_sub)> HttpFlvSubEventCb;
+    using HttpFlvSubEventCb = std::function<void(HttpFlvSubPtr http_flv_sub)>;
 
   public:
     explicit HttpFlvSub(asio::ip::tcp::socket socket);
@@ -31,7 +30,6 @@ class HttpFlvSub : public std::enable_shared_from_this<HttpFlvSub> {
 
     void start();
 
-    void async_send(BufferPtr buf, const std::vector<FlvTagInfo> &tis);
     void async_send(BufferPtr buf);
 
     void dispose() {}
@@ -59,11 +57,8 @@ class HttpFlvSub : public std::enable_shared_from_this<HttpFlvSub> {
     asio::ip::tcp::socket             socket_;
     HttpFlvSubCb                      sub_cb_;
     HttpFlvSubEventCb                 close_cb_;
-    //std::weak_ptr<Group>              group_;
     asio::streambuf                   request_buf_;
     std::queue<BufferPtr>             send_buffers_;
-    //bool                              is_bc_ready_ = false;
-    bool                              sent_first_key_frame_ = false;
 };
 
 }
