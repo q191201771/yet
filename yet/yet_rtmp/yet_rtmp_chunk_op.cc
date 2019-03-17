@@ -5,28 +5,28 @@
 
 namespace yet {
 
-BufferPtr RtmpChunkOp::msg2chunks(BufferPtr msg, const RtmpHeader &rtmp_header, const RtmpHeader *prev, std::size_t chunk_size) {
+BufferPtr RtmpChunkOp::msg2chunks(BufferPtr msg, const RtmpHeader &rtmp_header, const RtmpHeader *prev, size_t chunk_size) {
   return msg2chunks(msg->read_pos(), msg->readable_size(), rtmp_header, prev, chunk_size);
 }
 
-BufferPtr RtmpChunkOp::msg2chunks(uint8_t *msg, std::size_t msg_size, const RtmpHeader &rtmp_header, const RtmpHeader *prev, std::size_t chunk_size) {
+BufferPtr RtmpChunkOp::msg2chunks(uint8_t *msg, size_t msg_size, const RtmpHeader &rtmp_header, const RtmpHeader *prev, size_t chunk_size) {
   YET_LOG_ASSERT(rtmp_header.csid <= 65599, "Invalid csid when serialize chunk. {}", rtmp_header.csid);
 
   BufferPtr ret;
 
-  std::size_t suffix_chunk_len = chunk_size;
-  std::size_t num_of_chunk = msg_size / chunk_size;
+  size_t suffix_chunk_len = chunk_size;
+  size_t num_of_chunk = msg_size / chunk_size;
   if (msg_size % chunk_size != 0) {
     num_of_chunk++;
     suffix_chunk_len = msg_size % chunk_size;
   }
 
-  std::size_t max_needed_len = (chunk_size + RTMP_MAX_HEADER_LEN) * num_of_chunk;
+  size_t max_needed_len = (chunk_size + RTMP_MAX_HEADER_LEN) * num_of_chunk;
   ret = std::make_shared<Buffer>(max_needed_len, max_needed_len);
 
   uint8_t header[RTMP_MAX_HEADER_LEN];
   uint8_t *p = header;
-  std::size_t fmt = 0;
+  size_t fmt = 0;
 
   uint32_t timestamp;
   if (!prev) {
@@ -76,8 +76,8 @@ BufferPtr RtmpChunkOp::msg2chunks(uint8_t *msg, std::size_t msg_size, const Rtmp
     p = AmfOp::encode_int32(p, timestamp);
   }
 
-  std::size_t rtmp_header_len = p-header;
-  for (std::size_t i = 0; i < num_of_chunk; i++) {
+  size_t rtmp_header_len = p-header;
+  for (size_t i = 0; i < num_of_chunk; i++) {
     ret->append(header, rtmp_header_len);
     ret->append(msg + i*chunk_size, (i == num_of_chunk - 1) ? suffix_chunk_len : chunk_size);
   }

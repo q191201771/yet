@@ -16,21 +16,21 @@ class RtmpHandshakeC;
 
 class RtmpHandshakeS {
   public:
-    bool handle_c0c1(const uint8_t *c0c1, std::size_t len);
+    bool handle_c0c1(const uint8_t *c0c1, size_t len);
     // CHEFTODO merge s0s1s2
     //uint8_t *create_s0s1s2();
     uint8_t *create_s0s1();
     uint8_t *create_s2();
 
-    bool handle_c2(const uint8_t *, std::size_t) { return true; }
+    bool handle_c2(const uint8_t *, size_t) { return true; }
 
   private:
-    bool rtmp_handshake_parse_challenge(const uint8_t *buf, std::size_t buf_len,
-                                        const uint8_t *peer_key, std::size_t peer_key_len,
-                                        const uint8_t *key, std::size_t key_len);
+    bool rtmp_handshake_parse_challenge(const uint8_t *buf, size_t buf_len,
+                                        const uint8_t *peer_key, size_t peer_key_len,
+                                        const uint8_t *key, size_t key_len);
 
-    bool rtmp_handshake_create_challenge(uint8_t *buf, std::size_t buf_len, const uint8_t *version,
-                                         const uint8_t *key, std::size_t key_len);
+    bool rtmp_handshake_create_challenge(uint8_t *buf, size_t buf_len, const uint8_t *version,
+                                         const uint8_t *key, size_t key_len);
 
   public:
     RtmpHandshakeS() {}

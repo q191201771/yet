@@ -14,6 +14,9 @@
 
 namespace yet {
 
+// RtmpSessionPubSub means that this session is initiating a tcp connection to peer.
+// Push means that the av data flow from local to peer.
+// Pull means that the av data flow peer to local.
 class RtmpSessionPushPull : public RtmpSessionBase {
   public:
     static std::shared_ptr<RtmpSessionPushPull> create_push(asio::io_context &io_ctx);
@@ -23,6 +26,8 @@ class RtmpSessionPushPull : public RtmpSessionBase {
     void async_start(const std::string &peer_ip, uint16_t peer_port, const std::string &app_name, const std::string &stream_name);
 
     // CHEFTODO push pull start, succ cb
+
+    void dispose() {}
 
   private:
     void do_tcp_connect();
@@ -34,15 +39,14 @@ class RtmpSessionPushPull : public RtmpSessionBase {
     void do_write_rtmp_connect();
 
   private:
-    virtual void on_command_message(const std::string &cmd, uint32_t tid, uint8_t *pos, std::size_t len);
+    virtual void on_command_message(const std::string &cmd, uint32_t tid, uint8_t *pos, size_t len) override;
 
   private:
-    void cmd_msg_result_handler(uint8_t *pos, std::size_t len, uint32_t tid);
-    void cmd_msg_on_status_handler(uint8_t *pos, std::size_t len, uint32_t tid);
+    void cmd_msg_result_handler(uint8_t *pos, size_t len, uint32_t tid);
+    void cmd_msg_on_status_handler(uint8_t *pos, size_t len, uint32_t tid);
 
   private:
-    void do_write_release_stream();
-    void do_write_create_stream(uint32_t tid);
+    void do_write_create_stream();
     void do_write_play();
     void do_write_publish();
 

@@ -38,7 +38,7 @@ class HttpFlvSub : public std::enable_shared_from_this<HttpFlvSub> {
     void close();
 
   private:
-    void request_handler(const ErrorCode &ec, std::size_t len);
+    void request_handler(const ErrorCode &ec, size_t len);
     void do_send_http_headers();
     void do_send_flv_header();
     void do_send();

@@ -13,7 +13,6 @@ HttpFlvServer::HttpFlvServer(asio::io_context &io_ctx, const std::string &listen
   , listen_ip_(listen_ip)
   , listen_port_(listen_port)
   , server_(server)
-  , acceptor_(io_ctx_, asio::ip::tcp::endpoint(asio::ip::address_v4::from_string(listen_ip_), listen_port_))
 {
   YET_LOG_DEBUG("[{}] [lifecycle] new HttpFlvServer.", (void *)this);
 }
@@ -23,30 +22,31 @@ HttpFlvServer::~HttpFlvServer() {
 }
 
 void HttpFlvServer::do_accept() {
-  acceptor_.async_accept(std::bind(&HttpFlvServer::accept_cb, shared_from_this(), _1, _2));
+  acceptor_->async_accept([this](const ErrorCode &ec, asio::ip::tcp::socket socket) {
+                          YET_LOG_ASSERT(!ec, "http flv server accept failed. ec:{}", ec.message());
+                          auto pull = std::make_shared<HttpFlvSub>(std::move(socket));
+                          pull->set_sub_cb(std::bind(&HttpFlvServer::on_http_flv_request, this, _1, _2, _3, _4, _5));
+                          pull->start();
+                          do_accept();
+                        });
 }
 
-void HttpFlvServer::accept_cb(const ErrorCode &ec, asio::ip::tcp::socket socket) {
-  if (ec) {
-    YET_LOG_ERROR("http flv server accept failed. ec:{}", ec.message());
-    return;
-  }
-
-  auto pull = std::make_shared<HttpFlvSub>(std::move(socket));
-  pull->set_sub_cb(std::bind(&HttpFlvServer::on_http_flv_request, this, _1, _2, _3, _4, _5));
-  pull->start();
-
-  do_accept();
-}
-
-void HttpFlvServer::start() {
+bool HttpFlvServer::start() {
   YET_LOG_INFO("start http flv server. {}:{}", listen_ip_, listen_port_);
+  try {
+    acceptor_ = std::unique_ptr<asio::ip::tcp::acceptor>(new asio::ip::tcp::acceptor(io_ctx_,
+        asio::ip::tcp::endpoint(asio::ip::address_v4::from_string(listen_ip_), listen_port_)));
+  } catch (const std::system_error &err) {
+    YET_LOG_ERROR("http flv server listen failed. ip:{}, port:{}, ec:{}", listen_ip_, listen_port_, err.code().message());
+    return false;
+  }
   do_accept();
+  return true;
 }
 
 void HttpFlvServer::dispose() {
   YET_LOG_INFO("dispose http flv server.");
-  acceptor_.close();
+  acceptor_->close();
 }
 
 void HttpFlvServer::on_http_flv_request(HttpFlvSubPtr sub, const std::string &uri, const std::string &app_name,

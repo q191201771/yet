@@ -20,13 +20,12 @@ class HttpFlvServer : public std::enable_shared_from_this<HttpFlvServer>
     HttpFlvServer(asio::io_context &io_ctx, const std::string &listen_ip, uint16_t listen_port, Server *server);
     virtual ~HttpFlvServer();
 
-    void start();
+    bool start();
 
     void dispose();
 
   private:
     void do_accept();
-    void accept_cb(const ErrorCode &ec, asio::ip::tcp::socket socket);
 
   private:
     void on_http_flv_request(HttpFlvSubPtr sub, const std::string &uri, const std::string &app_name,
@@ -37,11 +36,11 @@ class HttpFlvServer : public std::enable_shared_from_this<HttpFlvServer>
     HttpFlvServer &operator=(const HttpFlvServer &) = delete;
 
   private:
-    asio::io_context        &io_ctx_;
-    const std::string       listen_ip_;
-    const uint16_t          listen_port_;
-    Server                  *server_;
-    asio::ip::tcp::acceptor acceptor_;
+    asio::io_context                         &io_ctx_;
+    const std::string                        listen_ip_;
+    const uint16_t                           listen_port_;
+    Server                                   *server_;
+    std::unique_ptr<asio::ip::tcp::acceptor> acceptor_;
 };
 
 }

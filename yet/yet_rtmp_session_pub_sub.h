@@ -18,25 +18,27 @@
 
 namespace yet {
 
+// RtmpSessionPubSub means that this session is accepting incoming tcp connection which initiated by peer.
+// Pub means that the av data flow from peer to local.
+// Sub means that the av data flow local to peer.
 class RtmpSessionPubSub : public RtmpSessionBase {
   public:
     explicit RtmpSessionPubSub(asio::ip::tcp::socket socket);
     virtual ~RtmpSessionPubSub();
 
   public:
-    // CHEFTODO
-    using tmpRtmpEventCb = std::function<void(RtmpSessionPubSubPtr session)>;
+    using RtmpPubSubEventCb = std::function<void(RtmpSessionPubSubPtr session)>;
 
-    void set_pub_start_cb(tmpRtmpEventCb cb); // only for pub session while recv rtmp publish command message
-    void set_sub_start_cb(tmpRtmpEventCb cb); // only for sub session while recv rtmp play command message
-    void set_pub_stop_cb(tmpRtmpEventCb cb); // only for pub session while recv rtmp command message
+    void set_pub_start_cb(RtmpPubSubEventCb cb); // only for pub session while recv rtmp publish command message
+    void set_sub_start_cb(RtmpPubSubEventCb cb); // only for sub session while recv rtmp play command message
+    void set_pub_stop_cb(RtmpPubSubEventCb cb); // only for pub session while recv rtmp command message
 
     void start();
 
     void dispose() {}
 
   private:
-    virtual void on_command_message(const std::string &cmd, uint32_t tid, uint8_t *pos, std::size_t len);
+    virtual void on_command_message(const std::string &cmd, uint32_t tid, uint8_t *pos, size_t len) override;
 
   private:
     void do_read_c0c1();
@@ -45,11 +47,11 @@ class RtmpSessionPubSub : public RtmpSessionBase {
     void do_read_c2();
 
   private:
-    void connect_handler(double transaction_id, uint8_t *buf, std::size_t len);
-    void create_stream_handler(double transaction_id, uint8_t *buf, std::size_t len);
-    void publish_handler(double transaction_id, uint8_t *buf, std::size_t len);
-    void play_handler(double transaction_id, uint8_t *buf, std::size_t len);
-    void delete_stream_handler(double transaction_id, uint8_t *buf, std::size_t len);
+    void connect_handler(uint32_t tid, uint8_t *buf, size_t len);
+    void create_stream_handler(uint32_t tid, uint8_t *buf, size_t len);
+    void publish_handler(uint32_t tid, uint8_t *buf, size_t len);
+    void play_handler(uint32_t tid, uint8_t *buf, size_t len);
+    void delete_stream_handler(uint32_t tid, uint8_t *buf, size_t len);
 
   private:
     void do_write_win_ack_size();
@@ -68,12 +70,12 @@ class RtmpSessionPubSub : public RtmpSessionBase {
     RtmpSessionPubSub &operator=(const RtmpSessionPubSub &) = delete;
 
   private:
-    RtmpHandshakeS        handshake_;
-    chef::buffer          write_buf_;
-    double                curr_tid_ = -1;
-    tmpRtmpEventCb        pub_start_cb_;
-    tmpRtmpEventCb        sub_start_cb_;
-    tmpRtmpEventCb        pub_stop_cb_;
+    RtmpHandshakeS    handshake_;
+    chef::buffer      write_buf_;
+    uint32_t          curr_tid_;
+    RtmpPubSubEventCb pub_start_cb_;
+    RtmpPubSubEventCb sub_start_cb_;
+    RtmpPubSubEventCb pub_stop_cb_;
 };
 
 }

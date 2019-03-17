@@ -44,7 +44,7 @@ void HttpFlvSub::start() {
   asio::async_read_until(socket_, request_buf_, "\r\n\r\n", std::bind(&HttpFlvSub::request_handler, shared_from_this(), _1, _2));
 }
 
-void HttpFlvSub::request_handler(const ErrorCode &ec, std::size_t len) {
+void HttpFlvSub::request_handler(const ErrorCode &ec, size_t len) {
   SNIPPET_ENTER_CB;
 
   using namespace chef;
@@ -99,9 +99,8 @@ void HttpFlvSub::request_handler(const ErrorCode &ec, std::size_t len) {
 
 void HttpFlvSub::do_send_http_headers() {
   auto self(shared_from_this());
-  asio::async_write(socket_,
-                    asio::buffer(FLV_HTTP_HEADERS, FLV_HTTP_HEADERS_LEN),
-                    [this, self](const ErrorCode &ec, std::size_t len) {
+  asio::async_write(socket_, asio::buffer(FLV_HTTP_HEADERS, FLV_HTTP_HEADERS_LEN),
+                    [this, self](const ErrorCode &ec, size_t len) {
                       SNIPPET_ENTER_CB;
                       do_send_flv_header();
                     });
@@ -109,9 +108,8 @@ void HttpFlvSub::do_send_http_headers() {
 
 void HttpFlvSub::do_send_flv_header() {
   auto self(shared_from_this());
-  asio::async_write(socket_,
-                    asio::buffer(FLV_HEADER_BUF_13, 13),
-                    [this, self](const ErrorCode &ec, std::size_t len) {
+  asio::async_write(socket_, asio::buffer(FLV_HEADER_BUF_13, 13),
+                    [this, self](const ErrorCode &ec, size_t len) {
                       SNIPPET_ENTER_CB;
                     });
 }
@@ -125,9 +123,8 @@ void HttpFlvSub::async_send(BufferPtr buf) {
 void HttpFlvSub::do_send() {
   auto buf = send_buffers_.front();
   auto self(shared_from_this());
-  asio::async_write(socket_,
-                    asio::buffer(buf->read_pos(), buf->readable_size()),
-                    [this, self](const ErrorCode &ec, std::size_t len) {
+  asio::async_write(socket_, asio::buffer(buf->read_pos(), buf->readable_size()),
+                    [this, self](const ErrorCode &ec, size_t len) {
                       SNIPPET_ENTER_CB;
                       send_buffers_.pop();
                       if (!send_buffers_.empty()) { do_send(); }

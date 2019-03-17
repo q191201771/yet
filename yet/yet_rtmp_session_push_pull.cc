@@ -27,10 +27,14 @@ std::shared_ptr<RtmpSessionPushPull> RtmpSessionPushPull::create_pull(asio::io_c
   return std::shared_ptr<RtmpSessionPushPull>(new RtmpSessionPushPull(io_ctx, RtmpSessionType::PULL));
 }
 
+RtmpSessionPushPullPtr RtmpSessionPushPull::get_self() {
+  return std::dynamic_pointer_cast<RtmpSessionPushPull>(shared_from_this());
+}
+
 void RtmpSessionPushPull::async_start(const std::string url) {
   RtmpUrlStuff rus;
-  // CHEFTODO check
-  RtmpHelperOp::resolve_rtmp_url(url, rus);
+  auto ret = RtmpHelperOp::resolve_rtmp_url(url, rus);
+  SINPPET_RTMP_SESSION_ASSERT(ret, "invalid url. {}", url);
   async_start(rus.host, rus.port, rus.app_name, rus.stream_name);
 }
 
@@ -60,7 +64,7 @@ void RtmpSessionPushPull::do_write_c0c1() {
   YET_LOG_INFO("[{}] <----Handshake C0+C1", (void *)this);
   auto self(get_self());
   asio::async_write(socket_, asio::buffer(handshake_.create_c0c1(), RTMP_C0C1_LEN),
-                    [this, self](const ErrorCode &ec, std::size_t) {
+                    [this, self](const ErrorCode &ec, size_t) {
                       SNIPPET_RTMP_SESSION_ENTER_CB;
                       do_read_s0s1s2();
                     });
@@ -71,7 +75,7 @@ void RtmpSessionPushPull::do_read_s0s1s2() {
   auto self(get_self());
   asio::async_read(socket_,
                    asio::buffer(read_buf_.write_pos(), RTMP_S0S1S2_LEN),
-                   [this, self](const ErrorCode &ec, std::size_t) {
+                   [this, self](const ErrorCode &ec, size_t) {
                       SNIPPET_RTMP_SESSION_ENTER_CB;
                       handshake_.handle_s0s1s2(read_buf_.read_pos());
                       YET_LOG_INFO("[{}] ---->Handshake S0+S1+S2", (void *)this);
@@ -83,7 +87,7 @@ void RtmpSessionPushPull::do_write_c2() {
   YET_LOG_INFO("[{}] <----Handshake C2", (void *)this);
   auto self(get_self());
   asio::async_write(socket_, asio::buffer(handshake_.create_c2(), RTMP_C2_LEN),
-                    [this, self](const ErrorCode &ec, std::size_t) {
+                    [this, self](const ErrorCode &ec, size_t) {
                       SNIPPET_RTMP_SESSION_ENTER_CB;
                       do_write_chunk_size();
                     });
@@ -96,7 +100,7 @@ void RtmpSessionPushPull::do_write_chunk_size() {
   YET_LOG_INFO("[{}] <-----Set Chunk Size {}", (void *)this, RTMP_LOCAL_CHUNK_SIZE);
   auto self(get_self());
   asio::async_write(socket_, asio::buffer(write_buf_.read_pos(), wlen),
-                    [this, self](const ErrorCode &ec, std::size_t) {
+                    [this, self](const ErrorCode &ec, size_t) {
                       SNIPPET_RTMP_SESSION_ENTER_CB;
                       do_write_rtmp_connect();
                     });
@@ -112,53 +116,50 @@ void RtmpSessionPushPull::do_write_rtmp_connect() {
   YET_LOG_INFO("[{}] <-----connect(\'{}\')", (void *)this, app_name_);
   auto self(get_self());
   asio::async_write(socket_, asio::buffer(write_buf_.read_pos(), wlen),
-                    [this, self](const ErrorCode &ec, std::size_t) {
+                    [this, self](const ErrorCode &ec, size_t) {
                       SNIPPET_RTMP_SESSION_ENTER_CB;
                       do_read();
                     });
 }
 
-void RtmpSessionPushPull::on_command_message(const std::string &cmd, uint32_t tid, uint8_t *pos, std::size_t len) {
-  if (cmd == "_result") { // S2C
-    cmd_msg_result_handler(pos, len, tid);
-  } else if (cmd == "onStatus") { // S2C
-    cmd_msg_on_status_handler(pos, len, tid);
+void RtmpSessionPushPull::on_command_message(const std::string &cmd, uint32_t tid, uint8_t *pos, size_t len) {
+  if (cmd == "onBWDone") {
+    YET_LOG_INFO("[{}] recvd command message {},ignore it.", (void *)this, cmd);
+
+  } else if (cmd == "_result") { cmd_msg_result_handler(pos, len, tid);
+  } else if (cmd == "onStatus") { cmd_msg_on_status_handler(pos, len, tid);
   } else {
-    YET_LOG_ASSERT(0, "Unknown command:{}", cmd);
+    SINPPET_RTMP_SESSION_ASSERT(0, "invalid command message. {}", cmd);
   }
 }
 
-void RtmpSessionPushPull::cmd_msg_result_handler(uint8_t *pos, std::size_t len, uint32_t tid) {
+void RtmpSessionPushPull::cmd_msg_result_handler(uint8_t *pos, size_t len, uint32_t tid) {
   if (tid == RTMP_TRANSACTION_ID_PUSH_PULL_CONNECT) {
     AmfObjectItemMap props;
-    std::size_t used;
+    size_t used;
     pos = AmfOp::decode_object(pos, len, &props, &used);
-    YET_LOG_ASSERT(pos, "decode object failed.");
+    SINPPET_RTMP_SESSION_ASSERT(pos, "invalid _result message.");
+
     AmfObjectItemMap infos;
     pos = AmfOp::decode_object(pos, len-used, &infos, nullptr);
-    YET_LOG_ASSERT(pos, "decode object failed.");
+    SINPPET_RTMP_SESSION_ASSERT(pos, "invalid _result message.");
+
+    // CHEFTOO other code
     auto code = infos.get("code");
-    YET_LOG_ASSERT(code && code->is_string(), "invalid code filed in cmd msg.");
-    if (code->get_string() == "NetConnection.Connect.Success") {
-      YET_LOG_INFO("[{}] ----->_result(\'NetConnection.Connect.Success\')", (void *)this);
-      if (type_ == RtmpSessionType::PUSH) {
-        //do_write_release_stream();
-        do_write_create_stream(RTMP_TRANSACTION_ID_PULL_CREATE_STREAM);
-      } else if (type_ == RtmpSessionType::PULL) {
-        do_write_create_stream(RTMP_TRANSACTION_ID_PULL_CREATE_STREAM);
-      }
-    } else {
-      YET_LOG_ASSERT(0, "invalid code {}", code->get_string());
-    }
+    SINPPET_RTMP_SESSION_ASSERT(code && code->is_string() && code->get_string() == "NetConnection.Connect.Success",
+                                "invalid _result message.");
+    YET_LOG_INFO("[{}] ----->_result(\'NetConnection.Connect.Success\')", (void *)this);
+    do_write_create_stream();
   }
 
-  if (tid == RTMP_TRANSACTION_ID_PULL_CREATE_STREAM) {
-    YET_LOG_ASSERT(*pos == Amf0DataType_NULL, "invalid.");
-    pos++; len--;
+  if (tid == RTMP_TRANSACTION_ID_PUSH_PULL_CREATE_STREAM) {
+    SNIPPET_RTMP_SESSION_SKIP_AMF_NULL(pos, len);
+
     double dsid;
     pos = AmfOp::decode_number_with_type(pos, len, &dsid, nullptr);
-    YET_LOG_ASSERT(pos, "invalid.");
+    SINPPET_RTMP_SESSION_ASSERT(pos, "invalid _result message.");
     stream_id_ = dsid;
+
     YET_LOG_INFO("[{}] ----->_result()", (void *)this);
     if (type_ == RtmpSessionType::PUSH) {
       do_write_publish();
@@ -169,15 +170,15 @@ void RtmpSessionPushPull::cmd_msg_result_handler(uint8_t *pos, std::size_t len, 
 
 }
 
-void RtmpSessionPushPull::cmd_msg_on_status_handler(uint8_t *pos, std::size_t len, uint32_t tid) {
-  YET_LOG_ASSERT(tid == 0, "invalid tid. {}", tid);
-  YET_LOG_ASSERT(*pos == Amf0DataType_NULL, "invalid.");
-  pos++; len--;
+void RtmpSessionPushPull::cmd_msg_on_status_handler(uint8_t *pos, size_t len, uint32_t tid) {
+  SINPPET_RTMP_SESSION_ASSERT(tid == 0, "invalid onStatus message.");
+  SNIPPET_RTMP_SESSION_SKIP_AMF_NULL(pos, len);
+
   AmfObjectItemMap infos;
   pos = AmfOp::decode_object(pos, len, &infos, nullptr);
-  YET_LOG_ASSERT(pos, "decode object failed.");
+  SINPPET_RTMP_SESSION_ASSERT(pos, "invalid onStatus message.");
   auto code = infos.get("code");
-  YET_LOG_ASSERT(code && code->is_string(), "invalid code filed in cmd msg.");
+  SINPPET_RTMP_SESSION_ASSERT(code && code->is_string(), "invalid onStatus message.");
 
   if (type_ == RtmpSessionType::PUSH) {
     if (code->get_string() == "NetStream.Publish.Start") {
@@ -191,31 +192,17 @@ void RtmpSessionPushPull::cmd_msg_on_status_handler(uint8_t *pos, std::size_t le
       return;
     }
   }
-  YET_LOG_ASSERT(0, "invalid code {}", code->get_string());
+  SINPPET_RTMP_SESSION_ASSERT(0, "invalid onStatus message. {}", code->get_string());
 }
 
-// CHEFTODO does push need release before create stream?
-void RtmpSessionPushPull::do_write_release_stream() {
-  auto wlen = RtmpPackOp::encode_release_stream_reserve(stream_name_.c_str());
-  write_buf_.reserve(wlen);
-  RtmpPackOp::encode_release_stream(write_buf_.write_pos(), wlen, stream_name_.c_str(), RTMP_TRANSACTION_ID_PUSH_RELEASE_STREAM);
-  YET_LOG_INFO("[{}] <-----releaseStream(\'{}\')", stream_name_.c_str(), (void *)this);
-  auto self(get_self());
-  asio::async_write(socket_, asio::buffer(write_buf_.read_pos(), wlen),
-                    [this, self](const ErrorCode &ec, std::size_t) {
-                      SNIPPET_RTMP_SESSION_ENTER_CB;
-                      do_write_create_stream(RTMP_TRANSACTION_ID_PUSH_CREATE_STREAM);
-                    });
-}
-
-void RtmpSessionPushPull::do_write_create_stream(uint32_t tid) {
+void RtmpSessionPushPull::do_write_create_stream() {
   auto wlen = RtmpPackOp::encode_create_stream_reserve();
   write_buf_.reserve(wlen);
-  RtmpPackOp::encode_create_stream(write_buf_.write_pos(), tid);
+  RtmpPackOp::encode_create_stream(write_buf_.write_pos(), RTMP_TRANSACTION_ID_PUSH_PULL_CREATE_STREAM);
   YET_LOG_INFO("[{}] <-----createStream()", (void *)this);
   auto self(get_self());
   asio::async_write(socket_, asio::buffer(write_buf_.read_pos(), wlen),
-                    [this, self](const ErrorCode &ec, std::size_t) {
+                    [this, self](const ErrorCode &ec, size_t) {
                       SNIPPET_RTMP_SESSION_ENTER_CB;
                     });
 }
@@ -223,11 +210,11 @@ void RtmpSessionPushPull::do_write_create_stream(uint32_t tid) {
 void RtmpSessionPushPull::do_write_play() {
   auto wlen = RtmpPackOp::encode_play_reserve(stream_name_.c_str());
   write_buf_.reserve(wlen);
-  RtmpPackOp::encode_play(write_buf_.write_pos(), wlen, stream_name_.c_str(), stream_id_, RTMP_TRANSACTION_ID_PULL_PLAY);
+  RtmpPackOp::encode_play(write_buf_.write_pos(), wlen, stream_name_.c_str(), stream_id_, RTMP_TRANSACTION_ID_PUSH_PULL_PLAY);
   YET_LOG_INFO("[{}] <-----play(\'{}\')", (void *)this, stream_name_.c_str());
   auto self(get_self());
   asio::async_write(socket_, asio::buffer(write_buf_.read_pos(), wlen),
-                    [this, self](const ErrorCode &ec, std::size_t) {
+                    [this, self](const ErrorCode &ec, size_t) {
                       SNIPPET_RTMP_SESSION_ENTER_CB;
                     });
 }
@@ -235,17 +222,13 @@ void RtmpSessionPushPull::do_write_play() {
 void RtmpSessionPushPull::do_write_publish() {
   auto wlen = RtmpPackOp::encode_publish_reserve(app_name_.c_str(), stream_name_.c_str());
   write_buf_.reserve(wlen);
-  RtmpPackOp::encode_publish(write_buf_.write_pos(), wlen, app_name_.c_str(), stream_name_.c_str(), stream_id_, RTMP_TRANSACTION_ID_PUSH_PUBLISH);
+  RtmpPackOp::encode_publish(write_buf_.write_pos(), wlen, app_name_.c_str(), stream_name_.c_str(), stream_id_, RTMP_TRANSACTION_ID_PUSH_PULL_PUBLISH);
   YET_LOG_INFO("[{}] <-----publish(\'{}\')", (void *)this, stream_name_.c_str());
   auto self(get_self());
   asio::async_write(socket_, asio::buffer(write_buf_.read_pos(), wlen),
-                    [this, self](const ErrorCode &ec, std::size_t) {
+                    [this, self](const ErrorCode &ec, size_t) {
                       SNIPPET_RTMP_SESSION_ENTER_CB;
                     });
-}
-
-RtmpSessionPushPullPtr RtmpSessionPushPull::get_self() {
-  return std::dynamic_pointer_cast<RtmpSessionPushPull>(shared_from_this());
 }
 
 }

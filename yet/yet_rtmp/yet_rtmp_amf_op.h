@@ -59,9 +59,9 @@ namespace yet {
   class AmfObjectItemBoolean : public AmfObjectItem {
     public:
       AmfObjectItemBoolean(bool v) : AmfObjectItem(Amf0ObjectValueType_BOOLEAN), v_(v) {}
-      virtual bool get_boolean() { return v_; }
-      virtual void set_boolean(bool v) { v_ = v; }
-      virtual std::string stringify() { std::ostringstream oss; oss << v_; return oss.str(); }
+      virtual bool get_boolean() override { return v_; }
+      virtual void set_boolean(bool v) override { v_ = v; }
+      virtual std::string stringify() override { std::ostringstream oss; oss << v_; return oss.str(); }
     private:
       bool v_;
   }; // class AmfObjectItemBoolean
@@ -69,9 +69,9 @@ namespace yet {
   class AmfObjectItemNumber: public AmfObjectItem {
     public:
       AmfObjectItemNumber(double v) : AmfObjectItem(Amf0ObjectValueType_NUMBER), v_(v) {}
-      virtual double get_number() { return v_; }
-      virtual void set_number(double v) { v_ = v; }
-      virtual std::string stringify() { std::ostringstream oss; oss << v_; return oss.str(); }
+      virtual double get_number() override { return v_; }
+      virtual void set_number(double v) override { v_ = v; }
+      virtual std::string stringify() override { std::ostringstream oss; oss << v_; return oss.str(); }
     private:
       double v_;
   }; // class AmfObjectItemNumber
@@ -79,10 +79,10 @@ namespace yet {
   class AmfObjectItemString: public AmfObjectItem {
     public:
       AmfObjectItemString(const std::string &v) : AmfObjectItem(Amf0ObjectValueType_STRING), v_(v) {}
-      AmfObjectItemString(const char *data, std::size_t len) : AmfObjectItem(Amf0ObjectValueType_STRING), v_(data, len) {}
-      virtual std::string get_string() { return v_; }
-      virtual void set_string(const std::string &v) { v_ = v; }
-      virtual std::string stringify() { std::ostringstream oss; oss << v_; return oss.str(); }
+      AmfObjectItemString(const char *data, size_t len) : AmfObjectItem(Amf0ObjectValueType_STRING), v_(data, len) {}
+      virtual std::string get_string() override { return v_; }
+      virtual void set_string(const std::string &v) override { v_ = v; }
+      virtual std::string stringify() override { std::ostringstream oss; oss << v_; return oss.str(); }
     private:
       std::string v_;
   }; // class AmfObjectItemNumber
@@ -97,14 +97,14 @@ namespace yet {
       bool put(const std::string &name, bool v);
       bool put(const std::string &name, double v);
       bool put(const std::string &name, const std::string &v);
-      bool put(const std::string &name, const char *v, std::size_t len);
+      bool put(const std::string &name, const char *v, size_t len);
 
       /// @return true if exist, otherwise false
       AmfObjectItem *get(const std::string &name);
 
       std::list<std::pair<std::string, AmfObjectItem *> > &get_list();
 
-      std::size_t size() const { return objs_.size(); }
+      size_t size() const { return objs_.size(); }
       std::string stringify();
 
       void clear();
@@ -116,31 +116,31 @@ namespace yet {
 
   class AmfOp {
     public:
-      static constexpr std::size_t ENCODE_INT16_RESERVE = 2;
-      static constexpr std::size_t ENCODE_INT24_RESERVE = 3;
-      static constexpr std::size_t ENCODE_INT32_RESERVE = 4;
-      static constexpr std::size_t ENCODE_NUMBER_RESERVE = 9; /// with type
-      static constexpr std::size_t ENCODE_BOOLEAN_RESERVE = 2; /// with type
-      static constexpr std::size_t ENCODE_NULL_RESERVE = 1;
-      static constexpr std::size_t ENCODE_OBJECT_BEGIN_RESERVE = 1;
-      static constexpr std::size_t ENCODE_OBJECT_END_RESERVE = 3;
-      static constexpr std::size_t ENCODE_ECMA_ARRAY_BEGIN_RESERVE = 5;
-      static constexpr std::size_t ENCODE_ECMA_ARRAY_END_RESERVE = 3;
+      static constexpr size_t ENCODE_INT16_RESERVE = 2;
+      static constexpr size_t ENCODE_INT24_RESERVE = 3;
+      static constexpr size_t ENCODE_INT32_RESERVE = 4;
+      static constexpr size_t ENCODE_NUMBER_RESERVE = 9; /// with type
+      static constexpr size_t ENCODE_BOOLEAN_RESERVE = 2; /// with type
+      static constexpr size_t ENCODE_NULL_RESERVE = 1;
+      static constexpr size_t ENCODE_OBJECT_BEGIN_RESERVE = 1;
+      static constexpr size_t ENCODE_OBJECT_END_RESERVE = 3;
+      static constexpr size_t ENCODE_ECMA_ARRAY_BEGIN_RESERVE = 5;
+      static constexpr size_t ENCODE_ECMA_ARRAY_END_RESERVE = 3;
 
-      static std::size_t encode_int16_reserve() { return ENCODE_INT16_RESERVE; }
-      static std::size_t encode_int24_reserve() { return ENCODE_INT24_RESERVE; }
-      static std::size_t encode_int32_reserve() { return ENCODE_INT32_RESERVE; }
-      static std::size_t encode_number_reserve() { return ENCODE_NUMBER_RESERVE; }
-      static std::size_t encode_boolean_reserve() { return ENCODE_BOOLEAN_RESERVE; }
-      static std::size_t encode_null_reserve() { return ENCODE_NULL_RESERVE; }
-      static std::size_t encode_object_begin_reserve() { return ENCODE_OBJECT_BEGIN_RESERVE; }
-      static std::size_t encode_object_end_reserve() { return ENCODE_OBJECT_END_RESERVE; }
-      static std::size_t encode_ecma_array_begin_reserve() { return ENCODE_ECMA_ARRAY_BEGIN_RESERVE; }
-      static std::size_t encode_ecma_array_end_reserve() { return ENCODE_ECMA_ARRAY_END_RESERVE; }
-      static std::size_t encode_string_reserve(int val_len) { return (val_len < 65536) ? (val_len+1+2) : (val_len+1+4); }
-      static std::size_t encode_object_named_boolean_reserve(int name_len) { return 2+name_len+ENCODE_BOOLEAN_RESERVE; }
-      static std::size_t encode_object_named_number_reserve(int name_len) { return 2+name_len+ENCODE_NUMBER_RESERVE; }
-      static std::size_t encode_object_named_string_reserve(int name_len, int val_len) { return 2+name_len+encode_string_reserve(val_len); }
+      static size_t encode_int16_reserve() { return ENCODE_INT16_RESERVE; }
+      static size_t encode_int24_reserve() { return ENCODE_INT24_RESERVE; }
+      static size_t encode_int32_reserve() { return ENCODE_INT32_RESERVE; }
+      static size_t encode_number_reserve() { return ENCODE_NUMBER_RESERVE; }
+      static size_t encode_boolean_reserve() { return ENCODE_BOOLEAN_RESERVE; }
+      static size_t encode_null_reserve() { return ENCODE_NULL_RESERVE; }
+      static size_t encode_object_begin_reserve() { return ENCODE_OBJECT_BEGIN_RESERVE; }
+      static size_t encode_object_end_reserve() { return ENCODE_OBJECT_END_RESERVE; }
+      static size_t encode_ecma_array_begin_reserve() { return ENCODE_ECMA_ARRAY_BEGIN_RESERVE; }
+      static size_t encode_ecma_array_end_reserve() { return ENCODE_ECMA_ARRAY_END_RESERVE; }
+      static size_t encode_string_reserve(int val_len) { return (val_len < 65536) ? (val_len+1+2) : (val_len+1+4); }
+      static size_t encode_object_named_boolean_reserve(int name_len) { return 2+name_len+ENCODE_BOOLEAN_RESERVE; }
+      static size_t encode_object_named_number_reserve(int name_len) { return 2+name_len+ENCODE_NUMBER_RESERVE; }
+      static size_t encode_object_named_string_reserve(int name_len, int val_len) { return 2+name_len+encode_string_reserve(val_len); }
 
     public:
       /// @param <out> alloc outside, call xxx_reserve above if you not sure how big you need
@@ -152,22 +152,22 @@ namespace yet {
       static uint8_t *encode_number(uint8_t *out, double val);
       static uint8_t *encode_boolean(uint8_t *out, bool val);
       static uint8_t *encode_null(uint8_t *out);
-      static uint8_t *encode_string(uint8_t *out, const char *val, std::size_t val_len);
+      static uint8_t *encode_string(uint8_t *out, const char *val, size_t val_len);
 
       static uint8_t *encode_object_begin(uint8_t *out);
-      static uint8_t *encode_object_named_boolean(uint8_t *out, const char *name, std::size_t name_len, bool val);
-      static uint8_t *encode_object_named_number(uint8_t *out, const char *name, std::size_t name_len, double val);
-      static uint8_t *encode_object_named_string(uint8_t *out, const char *name, std::size_t name_len, const char *val, std::size_t val_len);
+      static uint8_t *encode_object_named_boolean(uint8_t *out, const char *name, size_t name_len, bool val);
+      static uint8_t *encode_object_named_number(uint8_t *out, const char *name, size_t name_len, double val);
+      static uint8_t *encode_object_named_string(uint8_t *out, const char *name, size_t name_len, const char *val, size_t val_len);
       static uint8_t *encode_object_end(uint8_t *out);
 
       static uint8_t *encode_ecma_array_begin(uint8_t *out, uint32_t array_len);
-      static uint8_t *encode_ecma_array_named_boolean(uint8_t *out, const char *name, std::size_t name_len, double val) {
+      static uint8_t *encode_ecma_array_named_boolean(uint8_t *out, const char *name, size_t name_len, double val) {
         return encode_object_named_boolean(out, name, name_len, val);
       }
-      static uint8_t *encode_ecma_array_named_number(uint8_t *out, const char *name, std::size_t name_len, double val) {
+      static uint8_t *encode_ecma_array_named_number(uint8_t *out, const char *name, size_t name_len, double val) {
         return encode_object_named_number(out, name, name_len, val);
       }
-      static uint8_t *encode_ecma_array_named_string(uint8_t *out, const char *name, std::size_t name_len, const char *val, std::size_t val_len) {
+      static uint8_t *encode_ecma_array_named_string(uint8_t *out, const char *name, size_t name_len, const char *val, size_t val_len) {
         return encode_object_named_string(out, name, name_len, val, val_len);
       }
       static uint8_t *encode_ecma_array_end(uint8_t *out);
@@ -177,23 +177,23 @@ namespace yet {
       /// @param valid_len if less than decode needed, return nullptr
       /// @param out deocoded data, alloc memory outside
       /// @param used_len used length of <in>, if caller don't care about it just set it nullptr
-      static uint8_t *decode_boolean_with_type(const uint8_t *in, std::size_t valid_len, bool *out, std::size_t *used_len);
-      static uint8_t *decode_number_with_type(const uint8_t *in, std::size_t valid_len, double *out, std::size_t *used_len);
-      static uint8_t *decode_int16(const uint8_t *in, std::size_t valid_len, int32_t *out, std::size_t *used_len);
-      static uint8_t *decode_int24(const uint8_t *in, std::size_t valid_len, int32_t *out, std::size_t *used_len);
-      static uint8_t *decode_int32(const uint8_t *in, std::size_t valid_len, int32_t *out, std::size_t *used_len);
-      static uint8_t *decode_int32_le(const uint8_t *in, std::size_t valid_len, int32_t *out, std::size_t *used_len);
+      static uint8_t *decode_boolean_with_type(const uint8_t *in, size_t valid_len, bool *out, size_t *used_len);
+      static uint8_t *decode_number_with_type(const uint8_t *in, size_t valid_len, double *out, size_t *used_len);
+      static uint8_t *decode_int16(const uint8_t *in, size_t valid_len, int32_t *out, size_t *used_len);
+      static uint8_t *decode_int24(const uint8_t *in, size_t valid_len, int32_t *out, size_t *used_len);
+      static uint8_t *decode_int32(const uint8_t *in, size_t valid_len, int32_t *out, size_t *used_len);
+      static uint8_t *decode_int32_le(const uint8_t *in, size_t valid_len, int32_t *out, size_t *used_len);
 
 
       // @NOTICE no memory copy, <out> point to some position after <in>
-      static uint8_t *decode_string(const uint8_t *in, std::size_t valid_len, char **out, std::size_t *str_len, std::size_t *used_len);
-      static uint8_t *decode_string_with_type(const uint8_t *in, std::size_t valid_len, char **out, std::size_t *str_len, std::size_t *used_len);
+      static uint8_t *decode_string(const uint8_t *in, size_t valid_len, char **out, size_t *str_len, size_t *used_len);
+      static uint8_t *decode_string_with_type(const uint8_t *in, size_t valid_len, char **out, size_t *str_len, size_t *used_len);
       // copy to std::string
-      static uint8_t *decode_string(const uint8_t *in, std::size_t valid_len, std::string *out, std::size_t *used_len);
-      static uint8_t *decode_string_with_type(const uint8_t *in, std::size_t valid_len, std::string *out, std::size_t *used_len);
+      static uint8_t *decode_string(const uint8_t *in, size_t valid_len, std::string *out, size_t *used_len);
+      static uint8_t *decode_string_with_type(const uint8_t *in, size_t valid_len, std::string *out, size_t *used_len);
 
-      static uint8_t *decode_object(const uint8_t *in, std::size_t valid_len, AmfObjectItemMap *objs, std::size_t *used_len);
-      static uint8_t *decode_ecma_array(const uint8_t *in, std::size_t valid_len, AmfObjectItemMap *objs, std::size_t *used_len);
+      static uint8_t *decode_object(const uint8_t *in, size_t valid_len, AmfObjectItemMap *objs, size_t *used_len);
+      static uint8_t *decode_ecma_array(const uint8_t *in, size_t valid_len, AmfObjectItemMap *objs, size_t *used_len);
 
     private:
       AmfOp() = delete;

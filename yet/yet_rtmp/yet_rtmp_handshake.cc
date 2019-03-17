@@ -8,7 +8,7 @@ namespace yet {
 // old style simple: obs rtmpdump
 // new style complex: ffmpeg vlc
 
-static constexpr std::size_t RTMP_HANDSHAKE_KEYLEN = 32;
+static constexpr size_t RTMP_HANDSHAKE_KEYLEN = 32;
 
 static constexpr uint8_t RTMP_SERVER_VERSION[] = {
     0x0D, 0x0E, 0x0A, 0x0D
@@ -39,13 +39,13 @@ static constexpr uint8_t RTMP_SERVER_KEY[] = {
   0x93, 0xB8, 0xE6, 0x36, 0xCF, 0xEB, 0x31, 0xAE
 };
 
-static constexpr std::size_t RTMP_SERVER_FULL_KEYLEN = sizeof(RTMP_SERVER_KEY);
-static constexpr std::size_t RTMP_SERVER_PART_KEYLEN = 36;
-//static constexpr std::size_t RTMP_CLIENT_FULL_KEYLEN = sizeof(RTMP_CLIENT_KEY);
-static constexpr std::size_t RTMP_CLIENT_PART_KEYLEN = 30;
+static constexpr size_t RTMP_SERVER_FULL_KEYLEN = sizeof(RTMP_SERVER_KEY);
+static constexpr size_t RTMP_SERVER_PART_KEYLEN = 36;
+//static constexpr size_t RTMP_CLIENT_FULL_KEYLEN = sizeof(RTMP_CLIENT_KEY);
+static constexpr size_t RTMP_CLIENT_PART_KEYLEN = 30;
 
-static bool rtmp_make_digest(const uint8_t *buf, std::size_t buf_len, const uint8_t *skip,
-                             const uint8_t *key, std::size_t key_len,
+static bool rtmp_make_digest(const uint8_t *buf, size_t buf_len, const uint8_t *skip,
+                             const uint8_t *key, size_t key_len,
                              uint8_t *dst)
 {
   HMACSHA256 crypto;
@@ -67,7 +67,7 @@ static bool rtmp_make_digest(const uint8_t *buf, std::size_t buf_len, const uint
   return true;
 }
 
-static int rtmp_find_digest(const uint8_t *buf, std::size_t buf_len, std::size_t base, const uint8_t *key, std::size_t key_len) {
+static int rtmp_find_digest(const uint8_t *buf, size_t buf_len, size_t base, const uint8_t *key, size_t key_len) {
   auto offs = buf[base] + buf[base+1] + buf[base+2] + buf[base+3];
   offs = (offs % 728) + base + 4;
   auto skip = buf + offs;
@@ -78,8 +78,8 @@ static int rtmp_find_digest(const uint8_t *buf, std::size_t buf_len, std::size_t
   return (memcmp(digest, skip, RTMP_HANDSHAKE_KEYLEN) == 0) ? offs : -1;
 }
 
-bool RtmpHandshakeS::rtmp_handshake_create_challenge(uint8_t *buf, std::size_t buf_len, const uint8_t *version,
-                                                    const uint8_t *key, std::size_t key_len)
+bool RtmpHandshakeS::rtmp_handshake_create_challenge(uint8_t *buf, size_t buf_len, const uint8_t *version,
+                                                    const uint8_t *key, size_t key_len)
 {
   *buf++ = RTMP_VERSION;
   timestamp_sent_s1_ = static_cast<int>(chef::stuff_op::unix_timestamp_msec() / 1000);
@@ -94,9 +94,9 @@ bool RtmpHandshakeS::rtmp_handshake_create_challenge(uint8_t *buf, std::size_t b
   return rtmp_make_digest((const uint8_t *)buf, buf_len-1, skip, key, key_len, skip);
 }
 
-bool RtmpHandshakeS::rtmp_handshake_parse_challenge(const uint8_t *buf, std::size_t buf_len,
-                                                    const uint8_t *peer_key, std::size_t peer_key_len,
-                                                    const uint8_t *key, std::size_t key_len)
+bool RtmpHandshakeS::rtmp_handshake_parse_challenge(const uint8_t *buf, size_t buf_len,
+                                                    const uint8_t *peer_key, size_t peer_key_len,
+                                                    const uint8_t *key, size_t key_len)
 {
   if (buf[0] != RTMP_VERSION) {
     YET_LOG_ERROR("Handle c0c1 failed since version invalid. ver:{}", buf[0]);
@@ -135,7 +135,7 @@ bool RtmpHandshakeS::rtmp_handshake_parse_challenge(const uint8_t *buf, std::siz
     return false;
   }
 
-  static constexpr std::size_t digest_pos = RTMP_S2_LEN - RTMP_HANDSHAKE_KEYLEN;
+  static constexpr size_t digest_pos = RTMP_S2_LEN - RTMP_HANDSHAKE_KEYLEN;
   if (!rtmp_make_digest((const uint8_t *)s2_, RTMP_S2_LEN, (const uint8_t *)s2_+digest_pos, digest, RTMP_HANDSHAKE_KEYLEN, (uint8_t *)s2_+ digest_pos)) {
     YET_LOG_ERROR("CHEFGREPME Make s2 final digest failed.");
     return false;
@@ -144,7 +144,7 @@ bool RtmpHandshakeS::rtmp_handshake_parse_challenge(const uint8_t *buf, std::siz
   return true;
 }
 
-bool RtmpHandshakeS::handle_c0c1(const uint8_t *c0c1, std::size_t len) {
+bool RtmpHandshakeS::handle_c0c1(const uint8_t *c0c1, size_t len) {
   if (len < RTMP_C0C1_LEN) {
     YET_LOG_ERROR("Handle c0c1 failed since len too short. len:{}", len);
     return false;

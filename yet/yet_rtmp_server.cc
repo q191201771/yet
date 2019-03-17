@@ -12,7 +12,6 @@ RtmpServer::RtmpServer(asio::io_context &io_ctx, const std::string &listen_ip, u
   , listen_ip_(listen_ip)
   , listen_port_(listen_port)
   , server_(server)
-  , acceptor_(io_ctx_, asio::ip::tcp::endpoint(asio::ip::address_v4::from_string(listen_ip_), listen_port_))
 {
   YET_LOG_DEBUG("[{}] [lifecycle] new RtmpServer.", static_cast<void *>(this));
 }
@@ -22,33 +21,34 @@ RtmpServer::~RtmpServer() {
 }
 
 void RtmpServer::do_accept() {
-  acceptor_.async_accept(std::bind(&RtmpServer::accept_cb, this, _1, _2));
+  acceptor_->async_accept([this](const ErrorCode &ec, asio::ip::tcp::socket socket) {
+                           YET_LOG_ASSERT(!ec, "rtmp server accept failed. ec:{}", ec.message());
+                           auto session = std::make_shared<RtmpSessionPubSub>(std::move(socket));
+                           session->set_pub_start_cb(std::bind(&RtmpServer::on_pub_start, this, _1));
+                           session->set_sub_start_cb(std::bind(&RtmpServer::on_sub_start, this, _1));
+                           session->set_pub_stop_cb(std::bind(&RtmpServer::on_pub_stop, this, _1));
+                           session->set_rtmp_session_close_cb(std::bind(&RtmpServer::on_rtmp_session_close, this, _1));
+                           session->start();
+                           do_accept();
+                         });
 }
 
-void RtmpServer::accept_cb(ErrorCode ec, asio::ip::tcp::socket socket) {
-  if (ec) {
-    YET_LOG_ERROR("rtmp server accept failed. ec:{}", ec.message());
-    return;
-  }
-
-  auto session = std::make_shared<RtmpSessionPubSub>(std::move(socket));
-  session->set_pub_start_cb(std::bind(&RtmpServer::on_pub_start, this, _1));
-  session->set_sub_start_cb(std::bind(&RtmpServer::on_sub_start, this, _1));
-  session->set_pub_stop_cb(std::bind(&RtmpServer::on_pub_stop, this, _1));
-  session->set_rtmp_session_close_cb(std::bind(&RtmpServer::on_rtmp_session_close, this, _1));
-  session->start();
-
-  do_accept();
-}
-
-void RtmpServer::start() {
+bool RtmpServer::start() {
   YET_LOG_INFO("start rtmp server. {}:{}", listen_ip_, listen_port_);
+  try {
+    acceptor_ = std::unique_ptr<asio::ip::tcp::acceptor>(new asio::ip::tcp::acceptor(io_ctx_,
+        asio::ip::tcp::endpoint(asio::ip::address_v4::from_string(listen_ip_), listen_port_)));
+  } catch (const std::system_error &err) {
+    YET_LOG_ERROR("rtmp server listen failed. ip:{}, port:{}, ec:{}", listen_ip_, listen_port_, err.code().message());
+    return false;
+  }
   do_accept();
+  return true;
 }
 
 void RtmpServer::dispose() {
   YET_LOG_INFO("dispose rtmp server.");
-  acceptor_.close();
+  acceptor_->close();
 }
 
 void RtmpServer::on_pub_start(RtmpSessionPubSubPtr session) {
@@ -63,18 +63,13 @@ void RtmpServer::on_sub_start(RtmpSessionPubSubPtr session) {
 
 void RtmpServer::on_pub_stop(RtmpSessionPubSubPtr session) {
   auto group = server_->get_group(session->stream_name());
-  if (!group) {
-    YET_LOG_WARN("group not exist while publish stop. {}", session->stream_name());
-  }
+  YET_LOG_ASSERT(group, "group not exist while publish stop. {}", session->stream_name());
   group->on_rtmp_pub_stop();
 }
 
 void RtmpServer::on_rtmp_session_close(RtmpSessionBasePtr session) {
   auto group = server_->get_group(session->stream_name());
-  if (!group) {
-    YET_LOG_DEBUG("group not exist while session close. {}", session->stream_name());
-    return;
-  }
+  YET_LOG_ASSERT(group, "group not exist while session close. {}", session->stream_name());
   group->on_rtmp_session_close(session);
 }
 

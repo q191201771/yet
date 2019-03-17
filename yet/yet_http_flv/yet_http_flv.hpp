@@ -21,29 +21,29 @@ static constexpr char FLV_HTTP_HEADERS[] = \
   "Pragma: no-cache\r\n" \
   "\r\n"
   ;
-static constexpr std::size_t FLV_HTTP_HEADERS_LEN = sizeof(FLV_HTTP_HEADERS)-1;
+static constexpr size_t FLV_HTTP_HEADERS_LEN = sizeof(FLV_HTTP_HEADERS)-1;
 
-static constexpr std::size_t BUF_INIT_LEN_METADATA     = 4096;
-static constexpr std::size_t BUF_INIT_LEN_AVC_HEADER   = 4096;
-static constexpr std::size_t BUF_INIT_LEN_AAC_HEADER   = 4096;
-static constexpr std::size_t BUF_SHRINK_LEN_METADATA   = 2147483647;
-static constexpr std::size_t BUF_SHRINK_LEN_AVC_HEADER = 2147483647;
-static constexpr std::size_t BUF_SHRINK_LEN_AAC_HEADER = 2147483647;
+static constexpr size_t BUF_INIT_LEN_METADATA     = 4096;
+static constexpr size_t BUF_INIT_LEN_AVC_HEADER   = 4096;
+static constexpr size_t BUF_INIT_LEN_AAC_HEADER   = 4096;
+static constexpr size_t BUF_SHRINK_LEN_METADATA   = 2147483647;
+static constexpr size_t BUF_SHRINK_LEN_AVC_HEADER = 2147483647;
+static constexpr size_t BUF_SHRINK_LEN_AAC_HEADER = 2147483647;
 
 }
 
 // const
 namespace yet {
 
-static constexpr std::size_t FLV_HEADER_FLV_VERSION = 9;
+static constexpr size_t FLV_HEADER_FLV_VERSION = 9;
 
 static constexpr uint8_t FLV_HEADER_BUF_13[] = { 0x46, 0x4c, 0x56, 0x01, 0x05, 0x0, 0x0, 0x0, 0x09, 0x0, 0x0, 0x0, 0x0 };
 
-static constexpr std::size_t FLV_TAG_HEADER_LEN = 11;
-static constexpr std::size_t FLV_PREV_TAG_LEN = 4;
+static constexpr size_t FLV_TAG_HEADER_LEN = 11;
+static constexpr size_t FLV_PREV_TAG_LEN = 4;
 
-static constexpr std::size_t FLV_TAG_HEADER_TYPE_AUDIO       = 8;
-static constexpr std::size_t FLV_TAG_HEADER_TYPE_VIDEO       = 9;
-static constexpr std::size_t FLV_TAG_HEADER_TYPE_SCRIPT_DATA = 18;
+static constexpr size_t FLV_TAG_HEADER_TYPE_AUDIO       = 8;
+static constexpr size_t FLV_TAG_HEADER_TYPE_VIDEO       = 9;
+static constexpr size_t FLV_TAG_HEADER_TYPE_SCRIPT_DATA = 18;
 
 }

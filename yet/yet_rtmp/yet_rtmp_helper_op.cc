@@ -6,7 +6,7 @@ namespace yet {
 bool RtmpHelperOp::resolve_rtmp_url(const std::string &url, RtmpUrlStuff &out) {
   if (url.empty()) { return false; }
 
-  std::size_t pos;
+  size_t pos;
   std::string part;
   out.origin_url = url;
 

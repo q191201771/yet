@@ -14,11 +14,11 @@ Group::Group(asio::io_context &io_ctx, const std::string &app_name, const std::s
   , app_name_(app_name)
   , stream_name_(stream_name)
 {
-  YET_LOG_DEBUG("[{}] [lifecycle] new Group.", (void *)this);
+  YET_LOG_INFO("[{}] [lifecycle] new Group. app_name:{}, stream_name:{}", (void *)this, app_name_, stream_name_);
 }
 
 Group::~Group() {
-  YET_LOG_DEBUG("[{}] [lifecycle] delete Group.", (void *)this);
+  YET_LOG_INFO("[{}] [lifecycle] delete Group.", (void *)this);
   if (prev_audio_header_) { delete prev_audio_header_; }
   if (prev_video_header_) { delete prev_video_header_; }
 }
@@ -26,24 +26,20 @@ Group::~Group() {
 void Group::dispose() {
   if (rtmp_pub_) { rtmp_pub_->dispose(); }
 
-  for (auto &it : http_flv_subs_) { it->dispose(); }
-  http_flv_subs_.clear();
+  if (rtmp_pull_) { rtmp_pull_->dispose(); }
 
   for (auto &it : rtmp_subs_) { it->dispose(); }
   http_flv_subs_.clear();
 
-  // CHEFTODO other session to dispose
+  for (auto &it : http_flv_subs_) { it->dispose(); }
+  http_flv_subs_.clear();
+
+  if (rtmp_push_) { rtmp_push_->dispose(); }
 }
 
 void Group::add_rtmp_sub(RtmpSessionPubSubPtr sub) {
   rtmp_subs_.insert(sub);
-
   pull_rtmp_if_needed();
-}
-
-// CHEFTODO reduce func like this
-void Group::del_rtmp_sub(RtmpSessionPubSubPtr sub) {
-  rtmp_subs_.erase(sub);
 }
 
 void Group::add_http_flv_sub(HttpFlvSubPtr sub) {
@@ -53,15 +49,15 @@ void Group::add_http_flv_sub(HttpFlvSubPtr sub) {
   pull_rtmp_if_needed();
 }
 
-void Group::del_http_flv_sub(HttpFlvSubPtr sub) {
-  http_flv_subs_.erase(sub);
+bool Group::empty_totally() {
+  return !rtmp_pub_ && rtmp_subs_.empty() && !rtmp_push_ && !rtmp_pull_ && http_flv_subs_.empty();
 }
 
 void Group::on_http_flv_close(HttpFlvSubPtr sub) {
   http_flv_subs_.erase(sub);
 }
 
-void Group::on_rtmp_meta_data(RtmpSessionBasePtr pub, BufferPtr msg, uint8_t *meta_pos, std::size_t meta_size, AmfObjectItemMapPtr meta) {
+void Group::on_rtmp_meta_data(RtmpSessionBasePtr pub, BufferPtr msg, uint8_t *meta_pos, size_t meta_size, AmfObjectItemMapPtr meta) {
   (void)pub; (void)msg; (void)meta;
 
   RtmpHeader h;
@@ -279,6 +275,7 @@ void Group::on_rtmp_pub_start(RtmpSessionPubSubPtr pub) {
     rtmp_push_ = RtmpSessionPushPull::create_push(io_ctx_);
     rtmp_push_->async_start(Config::instance()->rtmp_push_host(), Config::instance()->rtmp_push_port(), rtmp_pub_->app_name(),
                             rtmp_pub_->stream_name());
+    rtmp_push_->set_rtmp_session_close_cb(std::bind(&Group::on_rtmp_session_close, this, _1)); // for pub & sub & push & pull session
   }
 }
 
@@ -296,7 +293,7 @@ void Group::on_rtmp_session_close(RtmpSessionBasePtr session) {
   // CHEFTODO re-push re-pull?
   switch (session->type()) {
   case RtmpSessionType::PUB:  rtmp_pub_.reset(); break;
-  case RtmpSessionType::SUB:  del_rtmp_sub(session->cast_to_pub_sub()); break;
+  case RtmpSessionType::SUB:  rtmp_subs_.erase(session->cast_to_pub_sub()); break;
   case RtmpSessionType::PULL: rtmp_pull_.reset(); break;
   case RtmpSessionType::PUSH: rtmp_push_.reset(); break;
   default:                    YET_LOG_ASSERT(0, "invalid.");

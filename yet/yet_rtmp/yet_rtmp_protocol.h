@@ -17,7 +17,7 @@ class RtmpProtocol {
 
   public:
     //void set_complete_message_cb(CompleteMessageCb cb);
-    void update_peer_chunk_size(std::size_t val);
+    void update_peer_chunk_size(size_t val);
 
     /// <try_compose> is rtmp protocol state machine.
     /// you can append raw data to <buf>(let's say read from network), call <try_compose> to parse it.
@@ -32,7 +32,7 @@ class RtmpProtocol {
     using Csid2Stream = std::unordered_map<int, RtmpStreamPtr>;
 
   private:
-    std::size_t       peer_chunk_size_ = RTMP_DEFAULT_CHUNK_SIZE;
+    size_t       peer_chunk_size_ = RTMP_DEFAULT_CHUNK_SIZE;
     //CompleteMessageCb complete_message_cb_;
     bool              header_done_=false; // CHEFTODO rename
     int               curr_csid_;

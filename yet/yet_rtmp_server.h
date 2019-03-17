@@ -19,7 +19,7 @@ class RtmpServer : public std::enable_shared_from_this<RtmpServer>
     RtmpServer(asio::io_context &io_ctx, const std::string &listen_ip, uint16_t listen_port, Server *server);
     ~RtmpServer();
 
-    void start();
+    bool start();
     void dispose();
 
   private:
@@ -30,18 +30,17 @@ class RtmpServer : public std::enable_shared_from_this<RtmpServer>
 
   private:
     void do_accept();
-    void accept_cb(ErrorCode ec, asio::ip::tcp::socket socket);
 
   private:
     RtmpServer(const RtmpServer &) = delete;
     RtmpServer &operator=(const RtmpServer &) = delete;
 
   private:
-    asio::io_context        &io_ctx_;
-    const std::string       listen_ip_;
-    const uint16_t          listen_port_;
-    Server                  *server_;
-    asio::ip::tcp::acceptor acceptor_;
+    asio::io_context                         &io_ctx_;
+    const std::string                        listen_ip_;
+    const uint16_t                           listen_port_;
+    Server                                   *server_;
+    std::unique_ptr<asio::ip::tcp::acceptor> acceptor_;
 };
 
 }

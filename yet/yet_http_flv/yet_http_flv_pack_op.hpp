@@ -32,7 +32,7 @@ class HttpFlvPackOp {
       *buf = timestamp >> 24;
     }
 
-    static BufferPtr pack_tag(uint8_t *data, std::size_t data_size, uint8_t type, uint32_t timestamp) {
+    static BufferPtr pack_tag(uint8_t *data, size_t data_size, uint8_t type, uint32_t timestamp) {
       BufferPtr buf = std::make_shared<Buffer>(FLV_TAG_HEADER_LEN + data_size + FLV_PREV_TAG_LEN);
       uint8_t *p = buf->read_pos();
       pack_tag_header(p, type, data_size, timestamp);

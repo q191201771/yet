@@ -1,7 +1,6 @@
 /**
  * @file   yet.hpp
  * @author pengrl
- * @date   initial 20190127
  *
  */
 
@@ -16,13 +15,14 @@
 // config
 namespace yet {
 
-static constexpr std::size_t BUF_INIT_LEN_HTTP_FLV_PULL_EACH_READ   = 16384;
-static constexpr std::size_t BUF_SHRINK_LEN_HTTP_FLV_PULL_EACH_READ = 2147483647;
-static constexpr std::size_t BUF_INIT_LEN_RTMP_EACH_READ            = 16384;
-static constexpr std::size_t BUF_SHRINK_LEN_RTMP_EACH_READ          = 2147483647;
+static constexpr size_t BUF_INIT_LEN_HTTP_FLV_PULL_EACH_READ   = 16384;
+static constexpr size_t BUF_SHRINK_LEN_HTTP_FLV_PULL_EACH_READ = 2147483647;
+static constexpr size_t BUF_INIT_LEN_RTMP_EACH_READ            = 16384;
+static constexpr size_t BUF_SHRINK_LEN_RTMP_EACH_READ          = 2147483647;
 // @NOTICE len of rtmp-write only for non-av data
-static constexpr std::size_t BUF_INIT_LEN_RTMP_WRITE                = 4096;
-static constexpr std::size_t BUF_SHRINK_LEN_RTMP_WRITE              = 2147483647;
+static constexpr size_t BUF_INIT_LEN_RTMP_WRITE                = 4096;
+static constexpr size_t BUF_SHRINK_LEN_RTMP_WRITE              = 2147483647;
+static constexpr size_t CLEAN_EMPTY_GROUP_INTERVAL_MSEC        = 30000;
 
 }
 

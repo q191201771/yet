@@ -34,7 +34,7 @@ class RtmpSessionBase : public std::enable_shared_from_this<RtmpSessionBase> {
   public:
     using RtmpEventCb = std::function<void(RtmpSessionBasePtr session)>;
     using RtmpMetaDataCb = std::function<void(RtmpSessionBasePtr session, BufferPtr buf, uint8_t *meta_pos,
-                                              std::size_t meta_size, AmfObjectItemMapPtr)>;
+                                              size_t meta_size, AmfObjectItemMapPtr)>;
     using RtmpAvDataCb = std::function<void(RtmpSessionBasePtr session, BufferPtr buf, const RtmpHeader &header)>;
 
     void set_rtmp_session_close_cb(RtmpEventCb cb); // for pub & sub & push & pull session
@@ -48,7 +48,7 @@ class RtmpSessionBase : public std::enable_shared_from_this<RtmpSessionBase> {
     RtmpSessionPushPullPtr cast_to_push_pull(); // for pub & sub session
 
   protected:
-    virtual void on_command_message(const std::string &cmd, uint32_t tid, uint8_t *pos, std::size_t len) = 0;
+    virtual void on_command_message(const std::string &cmd, uint32_t tid, uint8_t *pos, size_t len) = 0;
 
   protected:
     void do_read();
@@ -101,14 +101,25 @@ class RtmpSessionBase : public std::enable_shared_from_this<RtmpSessionBase> {
 
 #define SNIPPET_RTMP_SESSION_ENTER_CB \
   if (ec) { \
-    YET_LOG_ERROR("[{}] ec:{}", (void *)this, ec.message()); \
     if (ec == asio::error::eof) { \
       YET_LOG_INFO("[{}] close by peer.", (void *)this); \
       close(); \
     } else if (ec == asio::error::broken_pipe) { \
       YET_LOG_INFO("[{}] broken pipe.", (void *)this); \
+    } else { \
+      YET_LOG_ERROR("[{}] ec:{}", (void *)this, ec.message()); \
     } \
     return; \
-  } \
+  }
 
+#define SINPPET_RTMP_SESSION_ASSERT(cond, ...) \
+  if (!(cond)) { \
+    yet::Log::instance()->error("[{}] {} - {}()#{}", (void *)this, fmt::format(__VA_ARGS__), __FUNCTION__, __LINE__); \
+    close(); \
+  }
+
+#define SNIPPET_RTMP_SESSION_SKIP_AMF_NULL(buf, len) \
+  SINPPET_RTMP_SESSION_ASSERT(*buf == Amf0DataType_NULL && len > 0, "invalid."); \
+  buf++; \
+  len--;
 }

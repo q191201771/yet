@@ -21,17 +21,23 @@ RtmpSessionBase::RtmpSessionBase(asio::ip::tcp::socket socket, RtmpSessionType t
 {
 }
 
-RtmpSessionType RtmpSessionBase::type() {
-  return type_;
-}
+RtmpSessionType RtmpSessionBase::type() { return type_; }
+
+void RtmpSessionBase::set_rtmp_session_close_cb(RtmpEventCb cb) { rtmp_session_close_cb_ = cb; }
+
+void RtmpSessionBase::set_rtmp_meta_data_cb(RtmpMetaDataCb cb) { rtmp_meta_data_cb_ = cb; }
+
+void RtmpSessionBase::set_rtmp_av_data_cb(RtmpAvDataCb cb) { rtmp_av_data_cb_ = cb; }
 
 RtmpSessionPubSubPtr RtmpSessionBase::cast_to_pub_sub() {
-  YET_LOG_ASSERT(type_ == RtmpSessionType::PUB_SUB || type_ == RtmpSessionType::PUB || type_ == RtmpSessionType::SUB, "invalid.");
+  SINPPET_RTMP_SESSION_ASSERT(type_ == RtmpSessionType::PUB_SUB || type_ == RtmpSessionType::PUB || type_ == RtmpSessionType::SUB,
+                              "invalid type while cast base session to pub_sub. {}", static_cast<int>(type_));
   return std::dynamic_pointer_cast<RtmpSessionPubSub>(shared_from_this());
 }
 
 RtmpSessionPushPullPtr RtmpSessionBase::cast_to_push_pull() {
-  YET_LOG_ASSERT(type_ == RtmpSessionType::PUSH || type_ == RtmpSessionType::PULL, "invalid");
+  SINPPET_RTMP_SESSION_ASSERT(type_ == RtmpSessionType::PUSH || type_ == RtmpSessionType::PULL,
+                              "invalid type while cast base session to push_pull. {}", static_cast<int>(type_));
   return std::dynamic_pointer_cast<RtmpSessionPushPull>(shared_from_this());
 }
 
@@ -39,17 +45,17 @@ void RtmpSessionBase::do_read() {
   read_buf_.reserve(BUF_INIT_LEN_RTMP_EACH_READ);
   auto self(shared_from_this());
   socket_.async_read_some(asio::buffer(read_buf_.write_pos(), BUF_INIT_LEN_RTMP_EACH_READ),
-                          [this, self](const ErrorCode &ec, std::size_t len) {
+                          [this, self](const ErrorCode &ec, size_t len) {
                             SNIPPET_RTMP_SESSION_ENTER_CB;
                             read_buf_.seek_write_pos(len);
-                            rtmp_protocol_.try_compose(read_buf_, std::bind(&RtmpSessionBase::base_complete_message_handler, shared_from_this(), _1));
+                            rtmp_protocol_.try_compose(read_buf_, std::bind(&RtmpSessionBase::base_complete_message_handler,
+                                                       shared_from_this(), _1));
                             do_read();
                           });
 }
 
 void RtmpSessionBase::base_complete_message_handler(RtmpStreamPtr stream) {
   curr_stream_ = stream;
-  //YET_LOG_DEBUG("compelete. {}", curr_stream_->header.msg_type_id);
 
   switch (curr_stream_->header.msg_type_id) {
   case RTMP_MSG_TYPE_ID_WIN_ACK_SIZE: // S2C
@@ -73,13 +79,14 @@ void RtmpSessionBase::base_complete_message_handler(RtmpStreamPtr stream) {
     base_av_data_handler();
     break;
   default:
-    YET_LOG_ASSERT(0, "unknown msg type. {}", curr_stream_->header.msg_type_id);
+    SINPPET_RTMP_SESSION_ASSERT(0, "invalid message type id. {}", curr_stream_->header.msg_type_id);
   }
 }
 
 void RtmpSessionBase::base_protocol_control_message_handler() {
   int val;
-  AmfOp::decode_int32(curr_stream_->msg->read_pos(), 4, &val, nullptr);
+  uint8_t *p = AmfOp::decode_int32(curr_stream_->msg->read_pos(), curr_stream_->msg->readable_size(), &val, nullptr);
+  SINPPET_RTMP_SESSION_ASSERT(p, "invalid protocol control message.");
 
   switch (curr_stream_->header.msg_type_id) {
   case RTMP_MSG_TYPE_ID_WIN_ACK_SIZE:
@@ -98,7 +105,7 @@ void RtmpSessionBase::base_protocol_control_message_handler() {
     YET_LOG_INFO("[{}] recvd protocol control message ack, ignore it. seq num:{}", (void *)this, val);
     break;
   default:
-    YET_LOG_ASSERT(0, "unknown protocol control message. {}", curr_stream_->header.msg_type_id);
+    SINPPET_RTMP_SESSION_ASSERT(0, "invalid message type id. {}", curr_stream_->header.msg_type_id);
   }
 }
 
@@ -118,12 +125,14 @@ void RtmpSessionBase::base_command_message_handler() {
   auto p = curr_stream_->msg->read_pos();
   std::string cmd;
   p = AmfOp::decode_string_with_type(p, curr_stream_->msg->readable_size(), &cmd, nullptr);
+  SINPPET_RTMP_SESSION_ASSERT(p, "invalid command message.");
 
-  double transaction_id;
-  p = AmfOp::decode_number_with_type(p, curr_stream_->msg->write_pos()-p, &transaction_id, nullptr);
+  double tid;
+  p = AmfOp::decode_number_with_type(p, curr_stream_->msg->write_pos()-p, &tid, nullptr);
+  SINPPET_RTMP_SESSION_ASSERT(p, "invalid command message.");
 
   auto left_size = curr_stream_->msg->write_pos()-p;
-  on_command_message(cmd, transaction_id, p, left_size);
+  on_command_message(cmd, tid, p, left_size);
 }
 
 void RtmpSessionBase::base_user_control_message_handler() {
@@ -134,9 +143,7 @@ void RtmpSessionBase::base_user_control_message_handler() {
 void RtmpSessionBase::close() {
   YET_LOG_DEBUG("[{}] close session.", (void *)this);
   socket_.close();
-  if (rtmp_session_close_cb_) {
-    rtmp_session_close_cb_(shared_from_this());
-  }
+  if (rtmp_session_close_cb_) { rtmp_session_close_cb_(shared_from_this()); }
 }
 
 void RtmpSessionBase::base_meta_data_handler() {
@@ -145,27 +152,23 @@ void RtmpSessionBase::base_meta_data_handler() {
   auto len = curr_stream_->msg->readable_size();
 
   std::string val;
-  std::size_t used_len;
+  size_t used_len;
   p = AmfOp::decode_string_with_type(p, len, &val, &used_len);
-  YET_LOG_ASSERT(p, "decode metadata failed.");
-  if (val != "@setDataFrame") {
-    YET_LOG_ERROR("invalid data message. {}", val);
-    return;
-  }
+  SINPPET_RTMP_SESSION_ASSERT(p, "invalid meta data message.");
+  SINPPET_RTMP_SESSION_ASSERT(val == "@setDataFrame", "invalid meta data message. {}", val);
+
   len -= used_len;
   uint8_t *meta_pos = p;
-  std::size_t meta_size = len;
+  size_t meta_size = len;
   p = AmfOp::decode_string_with_type(p, len, &val, &used_len);
-  YET_LOG_ASSERT(p, "decode metadata failed.");
-  if (val != "onMetaData") {
-    YET_LOG_ERROR("invalid data message. {}", val);
-    return;
-  }
+  SINPPET_RTMP_SESSION_ASSERT(p, "invalid meta data message.");
+  SINPPET_RTMP_SESSION_ASSERT(val == "onMetaData", "invalid meta data message. {}", val);
+
   len -= used_len;
   std::shared_ptr<AmfObjectItemMap> metadata = std::make_shared<AmfObjectItemMap>();
   p = AmfOp::decode_ecma_array(p, len, metadata.get(), nullptr);
-  YET_LOG_ASSERT(p, "decode metadata failed.");
-  YET_LOG_DEBUG("ts:{}, type id:{}, {}", curr_stream_->timestamp_abs, curr_stream_->header.msg_type_id, metadata->stringify());
+  SINPPET_RTMP_SESSION_ASSERT(p, "invalid meta data message.");
+
   if (rtmp_meta_data_cb_) {
     rtmp_meta_data_cb_(shared_from_this(), curr_stream_->msg, meta_pos, meta_size, metadata);
   }
@@ -180,37 +183,21 @@ void RtmpSessionBase::base_av_data_handler() {
   h.msg_len = curr_stream_->msg->readable_size();
   h.msg_type_id = curr_stream_->header.msg_type_id;
   h.msg_stream_id = RTMP_MSID;
-  if (rtmp_av_data_cb_) {
-    rtmp_av_data_cb_(shared_from_this(), curr_stream_->msg, h);
-  }
-}
-
-void RtmpSessionBase::set_rtmp_session_close_cb(RtmpEventCb cb) {
-  rtmp_session_close_cb_ = cb;
-}
-
-void RtmpSessionBase::set_rtmp_meta_data_cb(RtmpMetaDataCb cb) {
-  rtmp_meta_data_cb_ = cb;
-}
-
-void RtmpSessionBase::set_rtmp_av_data_cb(RtmpAvDataCb cb) {
-  rtmp_av_data_cb_ = cb;
+  if (rtmp_av_data_cb_) { rtmp_av_data_cb_(shared_from_this(), curr_stream_->msg, h); }
 }
 
 void RtmpSessionBase::async_send(BufferPtr buf) {
-  YET_LOG_ASSERT(type_ == RtmpSessionType::SUB || type_ == RtmpSessionType::PUSH, "invalid.");
+  SINPPET_RTMP_SESSION_ASSERT(type_ == RtmpSessionType::SUB || type_ == RtmpSessionType::PUSH, "invalid type while send data. {}", static_cast<int>(type_));
   auto is_empty = send_buffers_.empty();
   send_buffers_.push(buf);
-  if (is_empty) {
-    do_send();
-  }
+  if (is_empty) { do_send(); }
 }
 
 void RtmpSessionBase::do_send() {
   auto buf = send_buffers_.front();
   auto self(shared_from_this());
   asio::async_write(socket_, asio::buffer(buf->read_pos(), buf->readable_size()),
-                    [this, self](const ErrorCode &ec, std::size_t) {
+                    [this, self](const ErrorCode &ec, size_t) {
                       SNIPPET_RTMP_SESSION_ENTER_CB;
                       send_buffers_.pop();
                       if (!send_buffers_.empty()) {
@@ -218,6 +205,5 @@ void RtmpSessionBase::do_send() {
                       }
                     });
 }
-
 
 }

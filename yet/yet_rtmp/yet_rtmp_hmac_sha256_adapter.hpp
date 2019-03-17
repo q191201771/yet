@@ -32,7 +32,7 @@ HMAC_CTX *HMACSHA256_static<Dummy>::hmac_ = nullptr;
 
 class HMACSHA256 : public HMACSHA256_static<void> {
   public:
-    void init(const uint8_t *key, std::size_t key_len) {
+    void init(const uint8_t *key, size_t key_len) {
 #if defined(YET_HMAC_SHA256_OPENSSL)
       if (!hmac_) {
   #if OPENSSL_VERSION_NUMBER < 0x10100000L
@@ -50,7 +50,7 @@ class HMACSHA256 : public HMACSHA256_static<void> {
 #endif
     }
 
-    void update(const uint8_t *buf, std::size_t buf_len) {
+    void update(const uint8_t *buf, size_t buf_len) {
 #if defined(YET_HMAC_SHA256_OPENSSL)
       HMAC_Update(hmac_, buf, buf_len);
 #elif defined(YET_HMAC_SHA256_CHEF)

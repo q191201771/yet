@@ -3,7 +3,7 @@
 
 namespace yet {
 
-void RtmpProtocol::update_peer_chunk_size(std::size_t val) {
+void RtmpProtocol::update_peer_chunk_size(size_t val) {
   peer_chunk_size_ = val;
 }
 
@@ -20,7 +20,7 @@ void RtmpProtocol::try_compose(Buffer &buf, CompleteMessageCb cb) {
       uint8_t fmt = (*p >> 6) & 0x03; // 2bits
       curr_csid_ = *p & 0x3f; // 6 bits
 
-      std::size_t basic_header_len = 1;
+      size_t basic_header_len = 1;
       if (curr_csid_ == 0) {
         basic_header_len = 2;
         if (readable_size < 2) { return; }
@@ -103,7 +103,7 @@ void RtmpProtocol::try_compose(Buffer &buf, CompleteMessageCb cb) {
 
     curr_stream_ = get_or_create_stream(curr_csid_);
 
-    std::size_t needed_size;
+    size_t needed_size;
     if (curr_stream_->msg_len <= peer_chunk_size_) {
       needed_size = curr_stream_->msg_len;
     } else {

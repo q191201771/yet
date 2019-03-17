@@ -10,6 +10,7 @@
 #include <unordered_set>
 #include <vector>
 #include <asio.hpp>
+#include "chef_base/chef_snippet.hpp"
 #include "yet_rtmp/yet_rtmp_chunk_op.h"
 #include "yet.hpp"
 
@@ -23,10 +24,10 @@ class Group : public std::enable_shared_from_this<Group> {
     void dispose();
 
     void add_rtmp_sub(RtmpSessionPubSubPtr sub);
-    void del_rtmp_sub(RtmpSessionPubSubPtr sub);
 
     void add_http_flv_sub(HttpFlvSubPtr sub);
-    void del_http_flv_sub(HttpFlvSubPtr sub);
+
+    bool empty_totally();
 
   public:
     void on_rtmp_pub_start(RtmpSessionPubSubPtr pub);
@@ -37,7 +38,7 @@ class Group : public std::enable_shared_from_this<Group> {
 
   public:
     void on_rtmp_av_data(RtmpSessionBasePtr pub, BufferPtr msg, const RtmpHeader &h);
-    void on_rtmp_meta_data(RtmpSessionBasePtr pub, BufferPtr msg, uint8_t *meta_pos, std::size_t meta_size, AmfObjectItemMapPtr meta);
+    void on_rtmp_meta_data(RtmpSessionBasePtr pub, BufferPtr msg, uint8_t *meta_pos, size_t meta_size, AmfObjectItemMapPtr meta);
     void on_rtmp_session_close(RtmpSessionBasePtr session);
 
   private:
@@ -60,8 +61,11 @@ class Group : public std::enable_shared_from_this<Group> {
 
   private:
     asio::io_context       &io_ctx_;
-    const std::string      app_name_;
-    const std::string      stream_name_;
+
+    CHEF_PROPERTY(std::string, app_name);
+    CHEF_PROPERTY(std::string, stream_name);
+
+  private:
     RtmpSessionPubSubPtr   rtmp_pub_;
     RtmpSessionPushPullPtr rtmp_pull_;
     RtmpSubs               rtmp_subs_;
