@@ -2,8 +2,8 @@
 #include "chef_base/chef_stuff_op.hpp"
 #include "yet_rtmp/yet_rtmp.hpp"
 #include "yet_rtmp/yet_rtmp_amf_op.h"
-#include "yet_rtmp_session_pub_sub.h"
-#include "yet_rtmp_session_push_pull.h"
+#include "yet_rtmp_session_server.h"
+#include "yet_rtmp_session_client.h"
 
 namespace yet {
 
@@ -29,16 +29,16 @@ void RtmpSessionBase::set_rtmp_meta_data_cb(RtmpMetaDataCb cb) { rtmp_meta_data_
 
 void RtmpSessionBase::set_rtmp_av_data_cb(RtmpAvDataCb cb) { rtmp_av_data_cb_ = cb; }
 
-RtmpSessionPubSubPtr RtmpSessionBase::cast_to_pub_sub() {
-  SINPPET_RTMP_SESSION_ASSERT(type_ == RtmpSessionType::PUB_SUB || type_ == RtmpSessionType::PUB || type_ == RtmpSessionType::SUB,
-                              "invalid type while cast base session to pub_sub. {}", static_cast<int>(type_));
-  return std::dynamic_pointer_cast<RtmpSessionPubSub>(shared_from_this());
+RtmpSessionServerPtr RtmpSessionBase::cast_to_server_session() {
+  SINPPET_RTMP_SESSION_ASSERT(type_ == RtmpSessionType::SERVER || type_ == RtmpSessionType::PUB || type_ == RtmpSessionType::SUB,
+                              "invalid type while cast base session to server session. {}", static_cast<int>(type_));
+  return std::dynamic_pointer_cast<RtmpSessionServer>(shared_from_this());
 }
 
-RtmpSessionPushPullPtr RtmpSessionBase::cast_to_push_pull() {
+RtmpSessionClientPtr RtmpSessionBase::cast_to_client_session() {
   SINPPET_RTMP_SESSION_ASSERT(type_ == RtmpSessionType::PUSH || type_ == RtmpSessionType::PULL,
-                              "invalid type while cast base session to push_pull. {}", static_cast<int>(type_));
-  return std::dynamic_pointer_cast<RtmpSessionPushPull>(shared_from_this());
+                              "invalid type while cast base session to client session. {}", static_cast<int>(type_));
+  return std::dynamic_pointer_cast<RtmpSessionClient>(shared_from_this());
 }
 
 void RtmpSessionBase::do_read() {
@@ -151,20 +151,29 @@ void RtmpSessionBase::base_meta_data_handler() {
   uint8_t *p = curr_stream_->msg->read_pos();
   auto len = curr_stream_->msg->readable_size();
 
+  uint8_t *meta_pos = p;
+  size_t meta_size = len;
+
   std::string val;
   size_t used_len;
   p = AmfOp::decode_string_with_type(p, len, &val, &used_len);
   SINPPET_RTMP_SESSION_ASSERT(p, "invalid meta data message.");
-  SINPPET_RTMP_SESSION_ASSERT(val == "@setDataFrame", "invalid meta data message. {}", val);
-
   len -= used_len;
-  uint8_t *meta_pos = p;
-  size_t meta_size = len;
-  p = AmfOp::decode_string_with_type(p, len, &val, &used_len);
-  SINPPET_RTMP_SESSION_ASSERT(p, "invalid meta data message.");
-  SINPPET_RTMP_SESSION_ASSERT(val == "onMetaData", "invalid meta data message. {}", val);
 
-  len -= used_len;
+  if (val == "@setDataFrame") {
+    meta_pos = p;
+    meta_size = len;
+
+    p = AmfOp::decode_string_with_type(p, len, &val, &used_len);
+    SINPPET_RTMP_SESSION_ASSERT(p, "invalid meta data message.");
+    SINPPET_RTMP_SESSION_ASSERT(val == "onMetaData", "invalid meta data message. {}", val);
+    len -= used_len;
+  } else if (val == "onMetaData") {
+    // do nothing
+  } else {
+    SINPPET_RTMP_SESSION_ASSERT(0, "invalid meta data message. {}", val);
+  }
+
   std::shared_ptr<AmfObjectItemMap> metadata = std::make_shared<AmfObjectItemMap>();
   p = AmfOp::decode_ecma_array(p, len, metadata.get(), nullptr);
   SINPPET_RTMP_SESSION_ASSERT(p, "invalid meta data message.");

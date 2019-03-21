@@ -23,14 +23,14 @@ class Group : public std::enable_shared_from_this<Group> {
 
     void dispose();
 
-    void add_rtmp_sub(RtmpSessionPubSubPtr sub);
+    void add_rtmp_sub(RtmpSessionServerPtr sub);
 
     void add_http_flv_sub(HttpFlvSubPtr sub);
 
     bool empty_totally();
 
   public:
-    void on_rtmp_pub_start(RtmpSessionPubSubPtr pub);
+    void on_rtmp_pub_start(RtmpSessionServerPtr pub);
     void on_rtmp_pub_stop();
 
   public:
@@ -57,7 +57,7 @@ class Group : public std::enable_shared_from_this<Group> {
 
   private:
     using HttpFlvSubs = std::unordered_set<HttpFlvSubPtr>;
-    using RtmpSubs = std::unordered_set<RtmpSessionPubSubPtr>;
+    using RtmpSubs = std::unordered_set<RtmpSessionServerPtr>;
 
   private:
     asio::io_context       &io_ctx_;
@@ -66,19 +66,19 @@ class Group : public std::enable_shared_from_this<Group> {
     CHEF_PROPERTY(std::string, stream_name);
 
   private:
-    RtmpSessionPubSubPtr   rtmp_pub_;
-    RtmpSessionPushPullPtr rtmp_pull_;
-    RtmpSubs               rtmp_subs_;
-    RtmpSessionPushPullPtr rtmp_push_;
-    HttpFlvSubs            http_flv_subs_;
-    RtmpHeader             *prev_audio_header_=nullptr;
-    RtmpHeader             *prev_video_header_=nullptr;
-    BufferPtr              rtmp_chunked_metadata_;
-    BufferPtr              rtmp_chunked_avc_header_;
-    BufferPtr              rtmp_chunked_aac_header_;
-    BufferPtr              http_flv_metadata_;
-    BufferPtr              http_flv_avc_header_;
-    BufferPtr              http_flv_aac_header_;
+    RtmpSessionServerPtr rtmp_pub_;
+    RtmpSessionClientPtr rtmp_pull_;
+    RtmpSubs             rtmp_subs_;
+    RtmpSessionClientPtr rtmp_push_;
+    HttpFlvSubs          http_flv_subs_;
+    RtmpHeader           *prev_audio_header_=nullptr;
+    RtmpHeader           *prev_video_header_=nullptr;
+    BufferPtr            rtmp_chunked_metadata_;
+    BufferPtr            rtmp_chunked_avc_header_;
+    BufferPtr            rtmp_chunked_aac_header_;
+    BufferPtr            http_flv_metadata_;
+    BufferPtr            http_flv_avc_header_;
+    BufferPtr            http_flv_aac_header_;
 };
 
 }

@@ -4,8 +4,8 @@
 #include "yet.hpp"
 #include "yet_config.h"
 #include "yet_http_flv_session_sub.h"
-#include "yet_rtmp_session_pub_sub.h"
-#include "yet_rtmp_session_push_pull.h"
+#include "yet_rtmp_session_server.h"
+#include "yet_rtmp_session_client.h"
 
 namespace yet {
 
@@ -37,7 +37,7 @@ void Group::dispose() {
   if (rtmp_push_) { rtmp_push_->dispose(); }
 }
 
-void Group::add_rtmp_sub(RtmpSessionPubSubPtr sub) {
+void Group::add_rtmp_sub(RtmpSessionServerPtr sub) {
   rtmp_subs_.insert(sub);
   pull_rtmp_if_needed();
 }
@@ -257,7 +257,7 @@ void Group::cache_avc_header(BufferPtr msg, const RtmpHeader &h) {
   }
 }
 
-void Group::on_rtmp_pub_start(RtmpSessionPubSubPtr pub) {
+void Group::on_rtmp_pub_start(RtmpSessionServerPtr pub) {
   pub->set_rtmp_av_data_cb(std::bind(&Group::on_rtmp_av_data, this, _1, _2, _3));
   pub->set_rtmp_meta_data_cb(std::bind(&Group::on_rtmp_meta_data, this, _1, _2, _3, _4, _5));
   rtmp_pub_ = pub;
@@ -272,7 +272,7 @@ void Group::on_rtmp_pub_start(RtmpSessionPubSubPtr pub) {
 
   // CHEFTODO should we push if pull???
   if (Config::instance()->push_rtmp_if_pub() && !rtmp_push_ && rtmp_pub_) {
-    rtmp_push_ = RtmpSessionPushPull::create_push(io_ctx_);
+    rtmp_push_ = RtmpSessionClient::create_push(io_ctx_);
     rtmp_push_->async_start(Config::instance()->rtmp_push_host(), Config::instance()->rtmp_push_port(), rtmp_pub_->app_name(),
                             rtmp_pub_->stream_name());
     rtmp_push_->set_rtmp_session_close_cb(std::bind(&Group::on_rtmp_session_close, this, _1)); // for pub & sub & push & pull session
@@ -293,7 +293,7 @@ void Group::on_rtmp_session_close(RtmpSessionBasePtr session) {
   // CHEFTODO re-push re-pull?
   switch (session->type()) {
   case RtmpSessionType::PUB:  rtmp_pub_.reset(); break;
-  case RtmpSessionType::SUB:  rtmp_subs_.erase(session->cast_to_pub_sub()); break;
+  case RtmpSessionType::SUB:  rtmp_subs_.erase(session->cast_to_server_session()); break;
   case RtmpSessionType::PULL: rtmp_pull_.reset(); break;
   case RtmpSessionType::PUSH: rtmp_push_.reset(); break;
   default:                    YET_LOG_ASSERT(0, "invalid.");
@@ -306,7 +306,7 @@ bool Group::has_in() {
 
 void Group::pull_rtmp_if_needed() {
   if (Config::instance()->pull_rtmp_if_stream_not_exist() && !has_in()) {
-    rtmp_pull_ = RtmpSessionPushPull::create_pull(io_ctx_);
+    rtmp_pull_ = RtmpSessionClient::create_pull(io_ctx_);
     rtmp_pull_->async_start(Config::instance()->rtmp_pull_host(), Config::instance()->rtmp_pull_port(), app_name_, stream_name_);
     rtmp_pull_->set_rtmp_session_close_cb(std::bind(&Group::on_rtmp_session_close, this, _1));
     rtmp_pull_->set_rtmp_meta_data_cb(std::bind(&Group::on_rtmp_meta_data, this, _1, _2, _3, _4, _5));

@@ -17,7 +17,7 @@ namespace yet {
 
 enum class RtmpSessionType {
   INVALID = 0,
-  PUB_SUB = 1, // while accept a connection at rtmp port, we still don't know this session whether pub or sub,
+  SERVER = 1,  // while accept a connection at rtmp port, we still don't know this session whether pub or sub,
                // and will mod its type to pub or sub until recv rtmp publish/play command message
   PUB,
   SUB,
@@ -44,8 +44,8 @@ class RtmpSessionBase : public std::enable_shared_from_this<RtmpSessionBase> {
     void async_send(BufferPtr buf); // for sub & push session
 
     RtmpSessionType type();
-    RtmpSessionPubSubPtr cast_to_pub_sub(); // for pub & sub session
-    RtmpSessionPushPullPtr cast_to_push_pull(); // for pub & sub session
+    RtmpSessionServerPtr cast_to_server_session(); // for pub & sub session
+    RtmpSessionClientPtr cast_to_client_session(); // for pub & sub session
 
   protected:
     virtual void on_command_message(const std::string &cmd, uint32_t tid, uint8_t *pos, size_t len) = 0;

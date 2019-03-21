@@ -18,10 +18,10 @@ static constexpr size_t RTMP_WINDOW_ACKNOWLEDGEMENT_SIZE = 5000000;
 static constexpr size_t BUF_INIT_LEN_RTMP_COMPLETE_MESSAGE   = 16384;
 static constexpr size_t BUF_SHRINK_LEN_RTMP_COMPLETE_MESSAGE = 2147483647;
 
-static constexpr uint32_t RTMP_TRANSACTION_ID_PUSH_PULL_CONNECT       = 1;
-static constexpr uint32_t RTMP_TRANSACTION_ID_PUSH_PULL_CREATE_STREAM = 2;
-static constexpr uint32_t RTMP_TRANSACTION_ID_PUSH_PULL_PLAY          = 3;
-static constexpr uint32_t RTMP_TRANSACTION_ID_PUSH_PULL_PUBLISH       = 3;
+static constexpr uint32_t RTMP_TRANSACTION_ID_CLIENT_CONNECT       = 1;
+static constexpr uint32_t RTMP_TRANSACTION_ID_CLIENT_CREATE_STREAM = 2;
+static constexpr uint32_t RTMP_TRANSACTION_ID_CLIENT_PLAY          = 3;
+static constexpr uint32_t RTMP_TRANSACTION_ID_CLIENT_PUBLISH       = 3;
 
 }
 

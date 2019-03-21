@@ -1,4 +1,4 @@
-#include "yet_rtmp_session_pub_sub.h"
+#include "yet_rtmp_session_server.h"
 #include <asio.hpp>
 #include "chef_base/chef_stuff_op.hpp"
 #include "yet.hpp"
@@ -8,32 +8,32 @@
 
 namespace yet {
 
-RtmpSessionPubSub::RtmpSessionPubSub(asio::ip::tcp::socket socket)
-  : RtmpSessionBase(std::move(socket), RtmpSessionType::PUB_SUB)
+RtmpSessionServer::RtmpSessionServer(asio::ip::tcp::socket socket)
+  : RtmpSessionBase(std::move(socket), RtmpSessionType::SERVER)
   , write_buf_(BUF_INIT_LEN_RTMP_WRITE, BUF_SHRINK_LEN_RTMP_WRITE)
 {
-  YET_LOG_INFO("[{}] [lifecycle] new RtmpSessionPubSub.", (void *)this);
+  YET_LOG_INFO("[{}] [lifecycle] new RtmpSessionServer.", (void *)this);
 }
 
-RtmpSessionPubSub::~RtmpSessionPubSub() {
-  YET_LOG_DEBUG("[{}] [lifecycle] delete RtmpSessionPubSub.", (void *)this);
+RtmpSessionServer::~RtmpSessionServer() {
+  YET_LOG_DEBUG("[{}] [lifecycle] delete RtmpSessionServer.", (void *)this);
 }
 
-void RtmpSessionPubSub::set_pub_start_cb(RtmpPubSubEventCb cb) { pub_start_cb_ = cb; }
+void RtmpSessionServer::set_pub_start_cb(RtmpServerEventCb cb) { pub_start_cb_ = cb; }
 
-void RtmpSessionPubSub::set_pub_stop_cb(RtmpPubSubEventCb cb) { pub_stop_cb_ = cb; }
+void RtmpSessionServer::set_pub_stop_cb(RtmpServerEventCb cb) { pub_stop_cb_ = cb; }
 
-void RtmpSessionPubSub::set_sub_start_cb(RtmpPubSubEventCb cb) { sub_start_cb_ = cb; }
+void RtmpSessionServer::set_sub_start_cb(RtmpServerEventCb cb) { sub_start_cb_ = cb; }
 
-RtmpSessionPubSubPtr RtmpSessionPubSub::get_self() {
-  return std::dynamic_pointer_cast<RtmpSessionPubSub>(shared_from_this());
+RtmpSessionServerPtr RtmpSessionServer::get_self() {
+  return std::dynamic_pointer_cast<RtmpSessionServer>(shared_from_this());
 }
 
-void RtmpSessionPubSub::start() {
+void RtmpSessionServer::start() {
   do_read_c0c1();
 }
 
-void RtmpSessionPubSub::do_read_c0c1() {
+void RtmpSessionServer::do_read_c0c1() {
   read_buf_.reserve(RTMP_C0C1_LEN);
   auto self(get_self());
   asio::async_read(socket_, asio::buffer(read_buf_.write_pos(), RTMP_C0C1_LEN),
@@ -46,7 +46,7 @@ void RtmpSessionPubSub::do_read_c0c1() {
                    });
 }
 
-void RtmpSessionPubSub::do_write_s0s1() {
+void RtmpSessionServer::do_write_s0s1() {
   YET_LOG_INFO("[{}] <----Handshake S0+S1", (void *)this);
   auto self(get_self());
   asio::async_write(socket_, asio::buffer(handshake_.create_s0s1(), RTMP_S0S1_LEN),
@@ -56,7 +56,7 @@ void RtmpSessionPubSub::do_write_s0s1() {
                     });
 }
 
-void RtmpSessionPubSub::do_write_s2() {
+void RtmpSessionServer::do_write_s2() {
   YET_LOG_INFO("[{}] <----Handshake S2", (void *)this);
   auto self(get_self());
   asio::async_write(socket_, asio::buffer(handshake_.create_s2(), RTMP_S2_LEN),
@@ -66,7 +66,7 @@ void RtmpSessionPubSub::do_write_s2() {
                     });
 }
 
-void RtmpSessionPubSub::do_read_c2() {
+void RtmpSessionServer::do_read_c2() {
   read_buf_.reserve(RTMP_C2_LEN);
   auto self(get_self());
   asio::async_read(socket_, asio::buffer(read_buf_.write_pos(), RTMP_C2_LEN),
@@ -78,7 +78,7 @@ void RtmpSessionPubSub::do_read_c2() {
                    });
 }
 
-void RtmpSessionPubSub::on_command_message(const std::string &cmd, uint32_t tid, uint8_t *pos, size_t len) {
+void RtmpSessionServer::on_command_message(const std::string &cmd, uint32_t tid, uint8_t *pos, size_t len) {
   if (cmd == "releaseStream" ||
       cmd == "FCPublish" ||
       cmd == "FCUnpublish" ||
@@ -97,7 +97,7 @@ void RtmpSessionPubSub::on_command_message(const std::string &cmd, uint32_t tid,
   }
 }
 
-void RtmpSessionPubSub::connect_handler(uint32_t tid, uint8_t *buf, size_t len) {
+void RtmpSessionServer::connect_handler(uint32_t tid, uint8_t *buf, size_t len) {
   curr_tid_ = tid;
 
   AmfObjectItemMap objs;
@@ -113,7 +113,7 @@ void RtmpSessionPubSub::connect_handler(uint32_t tid, uint8_t *buf, size_t len) 
   do_write_win_ack_size();
 }
 
-void RtmpSessionPubSub::do_write_win_ack_size() {
+void RtmpSessionServer::do_write_win_ack_size() {
   auto wlen = RtmpPackOp::encode_win_ack_size_reserve();
   write_buf_.reserve(wlen);
   RtmpPackOp::encode_win_ack_size(write_buf_.write_pos(), RTMP_WINDOW_ACKNOWLEDGEMENT_SIZE);
@@ -126,7 +126,7 @@ void RtmpSessionPubSub::do_write_win_ack_size() {
                     });
 }
 
-void RtmpSessionPubSub::do_write_peer_bandwidth() {
+void RtmpSessionServer::do_write_peer_bandwidth() {
   auto wlen = RtmpPackOp::encode_peer_bandwidth_reserve();
   write_buf_.reserve(wlen);
   RtmpPackOp::encode_peer_bandwidth(write_buf_.write_pos(), RTMP_PEER_BANDWIDTH);
@@ -139,7 +139,7 @@ void RtmpSessionPubSub::do_write_peer_bandwidth() {
                     });
 }
 
-void RtmpSessionPubSub::do_write_chunk_size() {
+void RtmpSessionServer::do_write_chunk_size() {
   auto wlen = RtmpPackOp::encode_chunk_size_reserve();
   write_buf_.reserve(wlen);
   RtmpPackOp::encode_chunk_size(write_buf_.write_pos(), RTMP_LOCAL_CHUNK_SIZE);
@@ -152,7 +152,7 @@ void RtmpSessionPubSub::do_write_chunk_size() {
                     });
 }
 
-void RtmpSessionPubSub::do_write_connect_result() {
+void RtmpSessionServer::do_write_connect_result() {
   auto wlen = RtmpPackOp::encode_connect_result_reserve();
   write_buf_.reserve(wlen);
   RtmpPackOp::encode_connect_result(write_buf_.write_pos(), curr_tid_);
@@ -164,7 +164,7 @@ void RtmpSessionPubSub::do_write_connect_result() {
                     });
 }
 
-void RtmpSessionPubSub::create_stream_handler(uint32_t tid, uint8_t *buf, size_t len) {
+void RtmpSessionServer::create_stream_handler(uint32_t tid, uint8_t *buf, size_t len) {
   (void)buf; (void)len;
   curr_tid_ = tid;
 
@@ -172,7 +172,7 @@ void RtmpSessionPubSub::create_stream_handler(uint32_t tid, uint8_t *buf, size_t
   do_write_create_stream_result();
 }
 
-void RtmpSessionPubSub::do_write_create_stream_result() {
+void RtmpSessionServer::do_write_create_stream_result() {
   auto wlen = RtmpPackOp::encode_create_stream_result_reserve();
   write_buf_.reserve(wlen);
   // TODO stream id
@@ -185,7 +185,7 @@ void RtmpSessionPubSub::do_write_create_stream_result() {
                     });
 }
 
-void RtmpSessionPubSub::publish_handler(uint32_t tid, uint8_t *buf, size_t len) {
+void RtmpSessionServer::publish_handler(uint32_t tid, uint8_t *buf, size_t len) {
   (void)tid;
   size_t used_len;
 
@@ -207,7 +207,7 @@ void RtmpSessionPubSub::publish_handler(uint32_t tid, uint8_t *buf, size_t len) 
   do_write_on_status_publish();
 }
 
-void RtmpSessionPubSub::do_write_on_status_publish() {
+void RtmpSessionServer::do_write_on_status_publish() {
   auto wlen = RtmpPackOp::encode_on_status_publish_reserve();
   write_buf_.reserve(wlen);
   // TODO stream id
@@ -220,7 +220,7 @@ void RtmpSessionPubSub::do_write_on_status_publish() {
                     });
 }
 
-void RtmpSessionPubSub::play_handler(uint32_t tid, uint8_t *buf, size_t len) {
+void RtmpSessionServer::play_handler(uint32_t tid, uint8_t *buf, size_t len) {
   (void)tid;
   SNIPPET_RTMP_SESSION_SKIP_AMF_NULL(buf, len);
 
@@ -234,7 +234,7 @@ void RtmpSessionPubSub::play_handler(uint32_t tid, uint8_t *buf, size_t len) {
   do_write_on_status_play();
 }
 
-void RtmpSessionPubSub::do_write_on_status_play() {
+void RtmpSessionServer::do_write_on_status_play() {
   auto wlen = RtmpPackOp::encode_on_status_play_reserve();
   write_buf_.reserve(wlen);
   // TODO stream id
@@ -251,7 +251,7 @@ void RtmpSessionPubSub::do_write_on_status_play() {
                     });
 }
 
-void RtmpSessionPubSub::delete_stream_handler(uint32_t tid, uint8_t *buf, size_t len) {
+void RtmpSessionServer::delete_stream_handler(uint32_t tid, uint8_t *buf, size_t len) {
   (void)tid;
   SNIPPET_RTMP_SESSION_SKIP_AMF_NULL(buf, len);
 

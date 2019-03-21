@@ -1,5 +1,5 @@
 /**
- * @file   yet_rtmp_session_push_pull.h
+ * @file   yet_rtmp_session_client.h
  * @author pengrl
  *
  */
@@ -14,13 +14,13 @@
 
 namespace yet {
 
-// RtmpSessionPubSub means that this session is initiating a tcp connection to peer.
+// RtmpSessionClient means that this session is initiating a tcp connection to peer.
 // Push means that the av data flow from local to peer.
 // Pull means that the av data flow peer to local.
-class RtmpSessionPushPull : public RtmpSessionBase {
+class RtmpSessionClient : public RtmpSessionBase {
   public:
-    static std::shared_ptr<RtmpSessionPushPull> create_push(asio::io_context &io_ctx);
-    static std::shared_ptr<RtmpSessionPushPull> create_pull(asio::io_context &io_ctx);
+    static std::shared_ptr<RtmpSessionClient> create_push(asio::io_context &io_ctx);
+    static std::shared_ptr<RtmpSessionClient> create_pull(asio::io_context &io_ctx);
 
     void async_start(const std::string url);
     void async_start(const std::string &peer_ip, uint16_t peer_port, const std::string &app_name, const std::string &stream_name);
@@ -51,16 +51,16 @@ class RtmpSessionPushPull : public RtmpSessionBase {
     void do_write_publish();
 
   private:
-    RtmpSessionPushPullPtr get_self();
+    RtmpSessionClientPtr get_self();
 
   public:
-    virtual ~RtmpSessionPushPull();
+    virtual ~RtmpSessionClient();
 
   private:
-    RtmpSessionPushPull(asio::io_context &io_ctx, RtmpSessionType type);
+    RtmpSessionClient(asio::io_context &io_ctx, RtmpSessionType type);
 
-    RtmpSessionPushPull(const RtmpSessionPushPull &) = delete;
-    RtmpSessionPushPull &operator=(const RtmpSessionPushPull &) = delete;
+    RtmpSessionClient(const RtmpSessionClient &) = delete;
+    RtmpSessionClient &operator=(const RtmpSessionClient &) = delete;
 
   private:
     asio::ip::tcp::resolver resolver_;

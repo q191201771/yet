@@ -3,7 +3,7 @@
 #include "yet.hpp"
 #include "yet_server.h"
 #include "yet_group.h"
-#include "yet_rtmp_session_pub_sub.h"
+#include "yet_rtmp_session_server.h"
 
 namespace yet {
 
@@ -23,7 +23,7 @@ RtmpServer::~RtmpServer() {
 void RtmpServer::do_accept() {
   acceptor_->async_accept([this](const ErrorCode &ec, asio::ip::tcp::socket socket) {
                            YET_LOG_ASSERT(!ec, "rtmp server accept failed. ec:{}", ec.message());
-                           auto session = std::make_shared<RtmpSessionPubSub>(std::move(socket));
+                           auto session = std::make_shared<RtmpSessionServer>(std::move(socket));
                            session->set_pub_start_cb(std::bind(&RtmpServer::on_pub_start, this, _1));
                            session->set_sub_start_cb(std::bind(&RtmpServer::on_sub_start, this, _1));
                            session->set_pub_stop_cb(std::bind(&RtmpServer::on_pub_stop, this, _1));
@@ -51,17 +51,17 @@ void RtmpServer::dispose() {
   acceptor_->close();
 }
 
-void RtmpServer::on_pub_start(RtmpSessionPubSubPtr session) {
+void RtmpServer::on_pub_start(RtmpSessionServerPtr session) {
   auto group = server_->get_or_create_group(session->app_name(), session->stream_name());
   group->on_rtmp_pub_start(session);
 }
 
-void RtmpServer::on_sub_start(RtmpSessionPubSubPtr session) {
+void RtmpServer::on_sub_start(RtmpSessionServerPtr session) {
   auto group = server_->get_or_create_group(session->app_name(), session->stream_name());
   group->add_rtmp_sub(session);
 }
 
-void RtmpServer::on_pub_stop(RtmpSessionPubSubPtr session) {
+void RtmpServer::on_pub_stop(RtmpSessionServerPtr session) {
   auto group = server_->get_group(session->stream_name());
   YET_LOG_ASSERT(group, "group not exist while publish stop. {}", session->stream_name());
   group->on_rtmp_pub_stop();

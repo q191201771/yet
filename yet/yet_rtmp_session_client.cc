@@ -1,4 +1,4 @@
-#include "yet_rtmp_session_push_pull.h"
+#include "yet_rtmp_session_client.h"
 #include "chef_base/chef_strings_op.hpp"
 #include "yet_common/yet_log.h"
 #include "yet_rtmp/yet_rtmp_pack_op.h"
@@ -7,38 +7,38 @@
 
 namespace yet {
 
-RtmpSessionPushPull::RtmpSessionPushPull(asio::io_context &io_ctx, RtmpSessionType type)
+RtmpSessionClient::RtmpSessionClient(asio::io_context &io_ctx, RtmpSessionType type)
   : RtmpSessionBase(io_ctx, type)
   , resolver_(io_ctx)
   , write_buf_(BUF_INIT_LEN_RTMP_WRITE, BUF_SHRINK_LEN_RTMP_WRITE)
 {
-  YET_LOG_INFO("[{}] [lifecycle] new RtmpSessionPushPull.", (void *)this);
+  YET_LOG_INFO("[{}] [lifecycle] new RtmpSessionClient.", (void *)this);
 }
 
-RtmpSessionPushPull::~RtmpSessionPushPull() {
-  YET_LOG_INFO("[{}] [lifecycle] delete RtmpSessionPushPull.", (void *)this);
+RtmpSessionClient::~RtmpSessionClient() {
+  YET_LOG_INFO("[{}] [lifecycle] delete RtmpSessionClient.", (void *)this);
 }
 
-std::shared_ptr<RtmpSessionPushPull> RtmpSessionPushPull::create_push(asio::io_context &io_ctx) {
-  return std::shared_ptr<RtmpSessionPushPull>(new RtmpSessionPushPull(io_ctx, RtmpSessionType::PUSH));
+std::shared_ptr<RtmpSessionClient> RtmpSessionClient::create_push(asio::io_context &io_ctx) {
+  return std::shared_ptr<RtmpSessionClient>(new RtmpSessionClient(io_ctx, RtmpSessionType::PUSH));
 }
 
-std::shared_ptr<RtmpSessionPushPull> RtmpSessionPushPull::create_pull(asio::io_context &io_ctx) {
-  return std::shared_ptr<RtmpSessionPushPull>(new RtmpSessionPushPull(io_ctx, RtmpSessionType::PULL));
+std::shared_ptr<RtmpSessionClient> RtmpSessionClient::create_pull(asio::io_context &io_ctx) {
+  return std::shared_ptr<RtmpSessionClient>(new RtmpSessionClient(io_ctx, RtmpSessionType::PULL));
 }
 
-RtmpSessionPushPullPtr RtmpSessionPushPull::get_self() {
-  return std::dynamic_pointer_cast<RtmpSessionPushPull>(shared_from_this());
+RtmpSessionClientPtr RtmpSessionClient::get_self() {
+  return std::dynamic_pointer_cast<RtmpSessionClient>(shared_from_this());
 }
 
-void RtmpSessionPushPull::async_start(const std::string url) {
+void RtmpSessionClient::async_start(const std::string url) {
   RtmpUrlStuff rus;
   auto ret = RtmpHelperOp::resolve_rtmp_url(url, rus);
   SINPPET_RTMP_SESSION_ASSERT(ret, "invalid url. {}", url);
   async_start(rus.host, rus.port, rus.app_name, rus.stream_name);
 }
 
-void RtmpSessionPushPull::async_start(const std::string &peer_ip, uint16_t peer_port, const std::string &app_name, const std::string &stream_name) {
+void RtmpSessionClient::async_start(const std::string &peer_ip, uint16_t peer_port, const std::string &app_name, const std::string &stream_name) {
   peer_ip_     = peer_ip;
   peer_port_   = peer_port;
   app_name_    = app_name;
@@ -46,21 +46,21 @@ void RtmpSessionPushPull::async_start(const std::string &peer_ip, uint16_t peer_
   do_tcp_connect();
 }
 
-void RtmpSessionPushPull::do_tcp_connect() {
+void RtmpSessionClient::do_tcp_connect() {
   auto self(get_self());
   resolver_.async_resolve(peer_ip_, chef::strings_op::to_string(peer_port_),
                           [this, self](const ErrorCode &ec, asio::ip::tcp::resolver::results_type endpoints) {
                             SNIPPET_RTMP_SESSION_ENTER_CB;
-                            asio::async_connect(socket_, endpoints,  std::bind(&RtmpSessionPushPull::tcp_connect_handler, get_self(), _1, _2));
+                            asio::async_connect(socket_, endpoints,  std::bind(&RtmpSessionClient::tcp_connect_handler, get_self(), _1, _2));
                           });
 }
 
-void RtmpSessionPushPull::tcp_connect_handler(const ErrorCode &ec, const asio::ip::tcp::endpoint &) {
+void RtmpSessionClient::tcp_connect_handler(const ErrorCode &ec, const asio::ip::tcp::endpoint &) {
   SNIPPET_RTMP_SESSION_ENTER_CB;
   do_write_c0c1();
 }
 
-void RtmpSessionPushPull::do_write_c0c1() {
+void RtmpSessionClient::do_write_c0c1() {
   YET_LOG_INFO("[{}] <----Handshake C0+C1", (void *)this);
   auto self(get_self());
   asio::async_write(socket_, asio::buffer(handshake_.create_c0c1(), RTMP_C0C1_LEN),
@@ -70,7 +70,7 @@ void RtmpSessionPushPull::do_write_c0c1() {
                     });
 }
 
-void RtmpSessionPushPull::do_read_s0s1s2() {
+void RtmpSessionClient::do_read_s0s1s2() {
   read_buf_.reserve(RTMP_S0S1S2_LEN);
   auto self(get_self());
   asio::async_read(socket_,
@@ -83,7 +83,7 @@ void RtmpSessionPushPull::do_read_s0s1s2() {
                    });
 }
 
-void RtmpSessionPushPull::do_write_c2() {
+void RtmpSessionClient::do_write_c2() {
   YET_LOG_INFO("[{}] <----Handshake C2", (void *)this);
   auto self(get_self());
   asio::async_write(socket_, asio::buffer(handshake_.create_c2(), RTMP_C2_LEN),
@@ -93,7 +93,7 @@ void RtmpSessionPushPull::do_write_c2() {
                     });
 }
 
-void RtmpSessionPushPull::do_write_chunk_size() {
+void RtmpSessionClient::do_write_chunk_size() {
   auto wlen = RtmpPackOp::encode_chunk_size_reserve();
   write_buf_.reserve(wlen);
   RtmpPackOp::encode_chunk_size(write_buf_.write_pos(), RTMP_LOCAL_CHUNK_SIZE);
@@ -106,13 +106,13 @@ void RtmpSessionPushPull::do_write_chunk_size() {
                     });
 }
 
-void RtmpSessionPushPull::do_write_rtmp_connect() {
+void RtmpSessionClient::do_write_rtmp_connect() {
   std::ostringstream oss;
   oss << "rtmp://" << peer_ip_ << ":" << peer_port_ << "/" << app_name_ << "/" << stream_name_;
   auto url = oss.str();
   auto wlen = RtmpPackOp::encode_connect_reserve(app_name_.c_str(), url.c_str(), url.c_str());
   write_buf_.reserve(wlen);
-  RtmpPackOp::encode_connect(write_buf_.write_pos(), wlen, app_name_.c_str(), url.c_str(), url.c_str(), RTMP_TRANSACTION_ID_PUSH_PULL_CONNECT);
+  RtmpPackOp::encode_connect(write_buf_.write_pos(), wlen, app_name_.c_str(), url.c_str(), url.c_str(), RTMP_TRANSACTION_ID_CLIENT_CONNECT);
   YET_LOG_INFO("[{}] <-----connect(\'{}\')", (void *)this, app_name_);
   auto self(get_self());
   asio::async_write(socket_, asio::buffer(write_buf_.read_pos(), wlen),
@@ -122,7 +122,7 @@ void RtmpSessionPushPull::do_write_rtmp_connect() {
                     });
 }
 
-void RtmpSessionPushPull::on_command_message(const std::string &cmd, uint32_t tid, uint8_t *pos, size_t len) {
+void RtmpSessionClient::on_command_message(const std::string &cmd, uint32_t tid, uint8_t *pos, size_t len) {
   if (cmd == "onBWDone") {
     YET_LOG_INFO("[{}] recvd command message {},ignore it.", (void *)this, cmd);
 
@@ -133,8 +133,8 @@ void RtmpSessionPushPull::on_command_message(const std::string &cmd, uint32_t ti
   }
 }
 
-void RtmpSessionPushPull::cmd_msg_result_handler(uint8_t *pos, size_t len, uint32_t tid) {
-  if (tid == RTMP_TRANSACTION_ID_PUSH_PULL_CONNECT) {
+void RtmpSessionClient::cmd_msg_result_handler(uint8_t *pos, size_t len, uint32_t tid) {
+  if (tid == RTMP_TRANSACTION_ID_CLIENT_CONNECT) {
     AmfObjectItemMap props;
     size_t used;
     pos = AmfOp::decode_object(pos, len, &props, &used);
@@ -152,7 +152,7 @@ void RtmpSessionPushPull::cmd_msg_result_handler(uint8_t *pos, size_t len, uint3
     do_write_create_stream();
   }
 
-  if (tid == RTMP_TRANSACTION_ID_PUSH_PULL_CREATE_STREAM) {
+  if (tid == RTMP_TRANSACTION_ID_CLIENT_CREATE_STREAM) {
     SNIPPET_RTMP_SESSION_SKIP_AMF_NULL(pos, len);
 
     double dsid;
@@ -170,7 +170,7 @@ void RtmpSessionPushPull::cmd_msg_result_handler(uint8_t *pos, size_t len, uint3
 
 }
 
-void RtmpSessionPushPull::cmd_msg_on_status_handler(uint8_t *pos, size_t len, uint32_t tid) {
+void RtmpSessionClient::cmd_msg_on_status_handler(uint8_t *pos, size_t len, uint32_t tid) {
   SINPPET_RTMP_SESSION_ASSERT(tid == 0, "invalid onStatus message.");
   SNIPPET_RTMP_SESSION_SKIP_AMF_NULL(pos, len);
 
@@ -195,10 +195,10 @@ void RtmpSessionPushPull::cmd_msg_on_status_handler(uint8_t *pos, size_t len, ui
   SINPPET_RTMP_SESSION_ASSERT(0, "invalid onStatus message. {}", code->get_string());
 }
 
-void RtmpSessionPushPull::do_write_create_stream() {
+void RtmpSessionClient::do_write_create_stream() {
   auto wlen = RtmpPackOp::encode_create_stream_reserve();
   write_buf_.reserve(wlen);
-  RtmpPackOp::encode_create_stream(write_buf_.write_pos(), RTMP_TRANSACTION_ID_PUSH_PULL_CREATE_STREAM);
+  RtmpPackOp::encode_create_stream(write_buf_.write_pos(), RTMP_TRANSACTION_ID_CLIENT_CREATE_STREAM);
   YET_LOG_INFO("[{}] <-----createStream()", (void *)this);
   auto self(get_self());
   asio::async_write(socket_, asio::buffer(write_buf_.read_pos(), wlen),
@@ -207,10 +207,10 @@ void RtmpSessionPushPull::do_write_create_stream() {
                     });
 }
 
-void RtmpSessionPushPull::do_write_play() {
+void RtmpSessionClient::do_write_play() {
   auto wlen = RtmpPackOp::encode_play_reserve(stream_name_.c_str());
   write_buf_.reserve(wlen);
-  RtmpPackOp::encode_play(write_buf_.write_pos(), wlen, stream_name_.c_str(), stream_id_, RTMP_TRANSACTION_ID_PUSH_PULL_PLAY);
+  RtmpPackOp::encode_play(write_buf_.write_pos(), wlen, stream_name_.c_str(), stream_id_, RTMP_TRANSACTION_ID_CLIENT_PLAY);
   YET_LOG_INFO("[{}] <-----play(\'{}\')", (void *)this, stream_name_.c_str());
   auto self(get_self());
   asio::async_write(socket_, asio::buffer(write_buf_.read_pos(), wlen),
@@ -219,10 +219,10 @@ void RtmpSessionPushPull::do_write_play() {
                     });
 }
 
-void RtmpSessionPushPull::do_write_publish() {
+void RtmpSessionClient::do_write_publish() {
   auto wlen = RtmpPackOp::encode_publish_reserve(app_name_.c_str(), stream_name_.c_str());
   write_buf_.reserve(wlen);
-  RtmpPackOp::encode_publish(write_buf_.write_pos(), wlen, app_name_.c_str(), stream_name_.c_str(), stream_id_, RTMP_TRANSACTION_ID_PUSH_PULL_PUBLISH);
+  RtmpPackOp::encode_publish(write_buf_.write_pos(), wlen, app_name_.c_str(), stream_name_.c_str(), stream_id_, RTMP_TRANSACTION_ID_CLIENT_PUBLISH);
   YET_LOG_INFO("[{}] <-----publish(\'{}\')", (void *)this, stream_name_.c_str());
   auto self(get_self());
   asio::async_write(socket_, asio::buffer(write_buf_.read_pos(), wlen),

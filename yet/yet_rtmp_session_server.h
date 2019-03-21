@@ -1,5 +1,5 @@
 /**
- * @file   yet_rtmp_session_pub_sub.h
+ * @file   yet_rtmp_session_server.h
  * @author pengrl
  *
  */
@@ -18,20 +18,20 @@
 
 namespace yet {
 
-// RtmpSessionPubSub means that this session is accepting incoming tcp connection which initiated by peer.
+// RtmpSessionServer means that this session is accepting incoming tcp connection which initiated by peer.
 // Pub means that the av data flow from peer to local.
 // Sub means that the av data flow local to peer.
-class RtmpSessionPubSub : public RtmpSessionBase {
+class RtmpSessionServer : public RtmpSessionBase {
   public:
-    explicit RtmpSessionPubSub(asio::ip::tcp::socket socket);
-    virtual ~RtmpSessionPubSub();
+    explicit RtmpSessionServer(asio::ip::tcp::socket socket);
+    virtual ~RtmpSessionServer();
 
   public:
-    using RtmpPubSubEventCb = std::function<void(RtmpSessionPubSubPtr session)>;
+    using RtmpServerEventCb = std::function<void(RtmpSessionServerPtr session)>;
 
-    void set_pub_start_cb(RtmpPubSubEventCb cb); // only for pub session while recv rtmp publish command message
-    void set_sub_start_cb(RtmpPubSubEventCb cb); // only for sub session while recv rtmp play command message
-    void set_pub_stop_cb(RtmpPubSubEventCb cb); // only for pub session while recv rtmp command message
+    void set_pub_start_cb(RtmpServerEventCb cb); // only for pub session while recv rtmp publish command message
+    void set_sub_start_cb(RtmpServerEventCb cb); // only for sub session while recv rtmp play command message
+    void set_pub_stop_cb(RtmpServerEventCb cb); // only for pub session while recv rtmp command message
 
     void start();
 
@@ -63,19 +63,19 @@ class RtmpSessionPubSub : public RtmpSessionBase {
     void do_write_on_status_play();
 
   private:
-    RtmpSessionPubSubPtr get_self();
+    RtmpSessionServerPtr get_self();
 
   private:
-    RtmpSessionPubSub(const RtmpSessionPubSub &) = delete;
-    RtmpSessionPubSub &operator=(const RtmpSessionPubSub &) = delete;
+    RtmpSessionServer(const RtmpSessionServer &) = delete;
+    RtmpSessionServer &operator=(const RtmpSessionServer &) = delete;
 
   private:
     RtmpHandshakeS    handshake_;
     chef::buffer      write_buf_;
     uint32_t          curr_tid_;
-    RtmpPubSubEventCb pub_start_cb_;
-    RtmpPubSubEventCb sub_start_cb_;
-    RtmpPubSubEventCb pub_stop_cb_;
+    RtmpServerEventCb pub_start_cb_;
+    RtmpServerEventCb sub_start_cb_;
+    RtmpServerEventCb pub_stop_cb_;
 };
 
 }

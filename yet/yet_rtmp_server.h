@@ -9,7 +9,7 @@
 #include <string>
 #include <asio.hpp>
 #include "yet.hpp"
-#include "yet_rtmp_session_pub_sub.h"
+#include "yet_rtmp_session_server.h"
 
 namespace yet {
 
@@ -23,9 +23,9 @@ class RtmpServer : public std::enable_shared_from_this<RtmpServer>
     void dispose();
 
   private:
-    void on_pub_start(RtmpSessionPubSubPtr session);
-    void on_sub_start(RtmpSessionPubSubPtr session);
-    void on_pub_stop(RtmpSessionPubSubPtr session);
+    void on_pub_start(RtmpSessionServerPtr session);
+    void on_sub_start(RtmpSessionServerPtr session);
+    void on_pub_stop(RtmpSessionServerPtr session);
     void on_rtmp_session_close(RtmpSessionBasePtr session);
 
   private:
