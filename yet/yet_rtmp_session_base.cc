@@ -175,8 +175,15 @@ void RtmpSessionBase::base_meta_data_handler() {
   }
 
   std::shared_ptr<AmfObjectItemMap> metadata = std::make_shared<AmfObjectItemMap>();
-  p = AmfOp::decode_ecma_array(p, len, metadata.get(), nullptr);
-  SINPPET_RTMP_SESSION_ASSERT(p, "invalid meta data message.");
+  if (*p == Amf0DataType_ECMA_ARRAY) {
+    p = AmfOp::decode_ecma_array(p, len, metadata.get(), nullptr);
+    SINPPET_RTMP_SESSION_ASSERT(p, "invalid meta data message.");
+  } else if (*p == Amf0DataType_OBJECT) {
+    p = AmfOp::decode_object(p, len, metadata.get(), nullptr);
+    SINPPET_RTMP_SESSION_ASSERT(p, "invalid meta data message.");
+  } else {
+    SINPPET_RTMP_SESSION_ASSERT(0, "invalid meta data message. {}", (int)*p);
+  }
 
   if (rtmp_meta_data_cb_) {
     rtmp_meta_data_cb_(shared_from_this(), curr_stream_->msg, meta_pos, meta_size, metadata);
