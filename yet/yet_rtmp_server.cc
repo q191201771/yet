@@ -24,10 +24,10 @@ void RtmpServer::do_accept() {
   acceptor_->async_accept([this](const ErrorCode &ec, asio::ip::tcp::socket socket) {
                            YET_LOG_ASSERT(!ec, "rtmp server accept failed. ec:{}", ec.message());
                            auto session = std::make_shared<RtmpSessionServer>(std::move(socket));
-                           session->set_pub_start_cb(std::bind(&RtmpServer::on_pub_start, this, _1));
-                           session->set_sub_start_cb(std::bind(&RtmpServer::on_sub_start, this, _1));
-                           session->set_pub_stop_cb(std::bind(&RtmpServer::on_pub_stop, this, _1));
-                           session->set_rtmp_session_close_cb(std::bind(&RtmpServer::on_rtmp_session_close, this, _1));
+                           session->set_pub_start_cb([this](auto sessionPtr) { on_pub_start(sessionPtr); });
+                           session->set_sub_start_cb([this](auto sessionPtr) { on_sub_start(sessionPtr); });
+                           session->set_pub_stop_cb([this](auto sessionPtr) { on_pub_stop(sessionPtr); });
+                           session->set_rtmp_session_close_cb([this](auto sessionPtr) { on_rtmp_session_close(sessionPtr); });
                            session->start();
                            do_accept();
                          });

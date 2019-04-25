@@ -43,7 +43,7 @@ void Group::add_rtmp_sub(RtmpSessionServerPtr sub) {
 }
 
 void Group::add_http_flv_sub(HttpFlvSubPtr sub) {
-  sub->set_close_cb(std::bind(&Group::on_http_flv_close, this, _1));
+  sub->set_close_cb([this](auto subPtr) { on_http_flv_close(subPtr); });
   http_flv_subs_.insert(sub);
 
   pull_rtmp_if_needed();
@@ -258,8 +258,8 @@ void Group::cache_avc_header(BufferPtr msg, const RtmpHeader &h) {
 }
 
 void Group::on_rtmp_pub_start(RtmpSessionServerPtr pub) {
-  pub->set_rtmp_av_data_cb(std::bind(&Group::on_rtmp_av_data, this, _1, _2, _3));
-  pub->set_rtmp_meta_data_cb(std::bind(&Group::on_rtmp_meta_data, this, _1, _2, _3, _4, _5));
+  pub->set_rtmp_av_data_cb([this](auto ...args) { on_rtmp_av_data(std::forward<decltype(args)>(args)...); });
+  pub->set_rtmp_meta_data_cb([this](auto ...args) { on_rtmp_meta_data(std::forward<decltype(args)>(args)...); });
   rtmp_pub_ = pub;
 
   auto len = RtmpPackOp::encode_user_control_stream_begin_reserve();
@@ -275,7 +275,7 @@ void Group::on_rtmp_pub_start(RtmpSessionServerPtr pub) {
     rtmp_push_ = RtmpSessionClient::create_push(io_ctx_);
     rtmp_push_->async_start(Config::instance()->rtmp_push_host(), Config::instance()->rtmp_push_port(), rtmp_pub_->app_name(),
                             rtmp_pub_->stream_name());
-    rtmp_push_->set_rtmp_session_close_cb(std::bind(&Group::on_rtmp_session_close, this, _1)); // for pub & sub & push & pull session
+    rtmp_push_->set_rtmp_session_close_cb([this](auto sessionPtr) { on_rtmp_session_close(sessionPtr); }); // for pub & sub & push & pull session
   }
 }
 
@@ -308,9 +308,9 @@ void Group::pull_rtmp_if_needed() {
   if (Config::instance()->pull_rtmp_if_stream_not_exist() && !has_in()) {
     rtmp_pull_ = RtmpSessionClient::create_pull(io_ctx_);
     rtmp_pull_->async_start(Config::instance()->rtmp_pull_host(), Config::instance()->rtmp_pull_port(), app_name_, stream_name_);
-    rtmp_pull_->set_rtmp_session_close_cb(std::bind(&Group::on_rtmp_session_close, this, _1));
-    rtmp_pull_->set_rtmp_meta_data_cb(std::bind(&Group::on_rtmp_meta_data, this, _1, _2, _3, _4, _5));
-    rtmp_pull_->set_rtmp_av_data_cb(std::bind(&Group::on_rtmp_av_data, this, _1, _2, _3));
+    rtmp_pull_->set_rtmp_session_close_cb([this](auto sessionPtr) { on_rtmp_session_close(sessionPtr); });
+    rtmp_pull_->set_rtmp_meta_data_cb([this](auto ...args) { on_rtmp_meta_data(std::forward<decltype(args)>(args)...); });;
+    rtmp_pull_->set_rtmp_av_data_cb([this](auto ...args) { on_rtmp_av_data(std::forward<decltype(args)>(args)...); });
   }
 }
 

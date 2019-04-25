@@ -4,7 +4,7 @@ project(yet C CXX)
 
 #SET(CMAKE_CXX_COMPILER "")
 
-set(CMAKE_CXX_FLAGS "-g -pthread -std=c++0x -pipe -fPIC")
+set(CMAKE_CXX_FLAGS "-g -pthread -std=c++14 -pipe -fPIC")
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra -Wunused-parameter -Woverloaded-virtual -Wpointer-arith -Wshadow -Wwrite-strings -Wcast-align")
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DASIO_STANDALONE")
 

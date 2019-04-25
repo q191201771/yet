@@ -25,7 +25,7 @@ void HttpFlvServer::do_accept() {
   acceptor_->async_accept([this](const ErrorCode &ec, asio::ip::tcp::socket socket) {
                           YET_LOG_ASSERT(!ec, "http flv server accept failed. ec:{}", ec.message());
                           auto pull = std::make_shared<HttpFlvSub>(std::move(socket));
-                          pull->set_sub_cb(std::bind(&HttpFlvServer::on_http_flv_request, this, _1, _2, _3, _4, _5));
+                          pull->set_sub_cb([this](auto ...args) { on_http_flv_request(std::forward<decltype(args)>(args)...); });
                           pull->start();
                           do_accept();
                         });

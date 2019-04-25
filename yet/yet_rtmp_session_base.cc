@@ -48,8 +48,7 @@ void RtmpSessionBase::do_read() {
                           [this, self](const ErrorCode &ec, size_t len) {
                             SNIPPET_RTMP_SESSION_ENTER_CB;
                             read_buf_.seek_write_pos(len);
-                            rtmp_protocol_.try_compose(read_buf_, std::bind(&RtmpSessionBase::base_complete_message_handler,
-                                                       shared_from_this(), _1));
+                            rtmp_protocol_.try_compose(read_buf_, [self](auto stream) { self->base_complete_message_handler(stream); });
                             do_read();
                           });
 }
