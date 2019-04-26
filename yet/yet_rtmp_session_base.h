@@ -11,6 +11,7 @@
 #include "chef_base/chef_snippet.hpp"
 #include "yet_rtmp/yet_rtmp.hpp"
 #include "yet_rtmp/yet_rtmp_protocol.h"
+#include "yet_common/span.hpp"
 #include "yet.hpp"
 
 namespace yet {
@@ -33,8 +34,8 @@ class RtmpSessionBase : public std::enable_shared_from_this<RtmpSessionBase> {
 
   public:
     using RtmpEventCb = std::function<void(RtmpSessionBasePtr session)>;
-    using RtmpMetaDataCb = std::function<void(RtmpSessionBasePtr session, BufferPtr buf, uint8_t *meta_pos,
-                                              size_t meta_size, AmfObjectItemMapPtr)>;
+    using RtmpMetaDataCb = std::function<void(RtmpSessionBasePtr session, BufferPtr buf, nonstd::span<uint8_t> meta,
+                                              AmfObjectItemMapPtr)>;
     using RtmpAvDataCb = std::function<void(RtmpSessionBasePtr session, BufferPtr buf, const RtmpHeader &header)>;
 
     void set_rtmp_session_close_cb(RtmpEventCb cb); // for pub & sub & push & pull session

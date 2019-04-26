@@ -34,8 +34,8 @@ void HttpFlvServer::do_accept() {
 bool HttpFlvServer::start() {
   YET_LOG_INFO("start http flv server. {}:{}", listen_ip_, listen_port_);
   try {
-    acceptor_ = std::unique_ptr<asio::ip::tcp::acceptor>(new asio::ip::tcp::acceptor(io_ctx_,
-        asio::ip::tcp::endpoint(asio::ip::address_v4::from_string(listen_ip_), listen_port_)));
+    acceptor_ = std::make_unique<asio::ip::tcp::acceptor>(io_ctx_,
+        asio::ip::tcp::endpoint(asio::ip::address_v4::from_string(listen_ip_), listen_port_));
   } catch (const std::system_error &err) {
     YET_LOG_ERROR("http flv server listen failed. ip:{}, port:{}, ec:{}", listen_ip_, listen_port_, err.code().message());
     return false;

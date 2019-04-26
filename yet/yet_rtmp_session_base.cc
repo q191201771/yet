@@ -185,7 +185,7 @@ void RtmpSessionBase::base_meta_data_handler() {
   }
 
   if (rtmp_meta_data_cb_) {
-    rtmp_meta_data_cb_(shared_from_this(), curr_stream_->msg, meta_pos, meta_size, metadata);
+    rtmp_meta_data_cb_(shared_from_this(), curr_stream_->msg, { meta_pos, meta_size }, metadata);
   }
 }
 
