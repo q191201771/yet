@@ -7,6 +7,7 @@
 #pragma once
 
 #include "yet_common/yet_common.hpp"
+#include "yet_common/span.hpp"
 #include "yet_rtmp/yet_rtmp.hpp"
 
 namespace yet {
@@ -16,21 +17,21 @@ class RtmpHandshakeC;
 
 class RtmpHandshakeS {
   public:
-    bool handle_c0c1(const uint8_t *c0c1, size_t len);
+    bool handle_c0c1(nonstd::span<const uint8_t> c0c1);
     // CHEFTODO merge s0s1s2
     //uint8_t *create_s0s1s2();
     uint8_t *create_s0s1();
     uint8_t *create_s2();
 
-    bool handle_c2(const uint8_t *, size_t) { return true; }
+    bool handle_c2(nonstd::span<const uint8_t>) { return true; }
 
   private:
-    bool rtmp_handshake_parse_challenge(const uint8_t *buf, size_t buf_len,
-                                        const uint8_t *peer_key, size_t peer_key_len,
-                                        const uint8_t *key, size_t key_len);
+    bool rtmp_handshake_parse_challenge(nonstd::span<const uint8_t> buf,
+                                        nonstd::span<const uint8_t> peer_key,
+                                        nonstd::span<const uint8_t> key);
 
-    bool rtmp_handshake_create_challenge(uint8_t *buf, size_t buf_len, const uint8_t *version,
-                                         const uint8_t *key, size_t key_len);
+    bool rtmp_handshake_create_challenge(nonstd::span<uint8_t> buf, const uint8_t *version,
+                                         nonstd::span<const uint8_t> key);
 
   public:
     RtmpHandshakeS() {}
@@ -40,7 +41,7 @@ class RtmpHandshakeS {
     const RtmpHandshakeS &operator=(const RtmpHandshakeS &) = delete;
 
   private:
-    uint8_t s0s1_[RTMP_S0S1_LEN];
+    std::array<uint8_t, RTMP_S0S1_LEN> s0s1_;
     uint8_t s2_[RTMP_S2_LEN];
     int timestamp_recvd_c1_;
     int timestamp_sent_s1_;
