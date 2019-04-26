@@ -66,7 +66,7 @@ void Group::on_rtmp_meta_data(RtmpSessionBasePtr pub, BufferPtr msg, uint8_t *me
   h.msg_len = meta_size;
   h.msg_type_id = RTMP_MSG_TYPE_ID_DATA_MESSAGE_AMF0;
   h.msg_stream_id = RTMP_MSID;
-  rtmp_chunked_metadata_ = RtmpChunkOp::msg2chunks(meta_pos, meta_size, h, nullptr, RTMP_LOCAL_CHUNK_SIZE);
+  rtmp_chunked_metadata_ = RtmpChunkOp::msg2chunks({meta_pos, meta_size}, h, nullptr, RTMP_LOCAL_CHUNK_SIZE);
   YET_LOG_DEBUG("cache rtmp meta data.");
 
   for (auto &sub : rtmp_subs_) {
