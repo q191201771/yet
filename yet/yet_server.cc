@@ -45,7 +45,7 @@ void Server::do_crude_timer() {
   if (!crude_timer_first_) {
     crude_timer_.expires_at(crude_timer_.expires_at() + asio::chrono::milliseconds(CRUDE_TIMER_INTERVAL_MSEC));
   }
-  crude_timer_.async_wait(std::bind(&Server::crude_timer_handler, shared_from_this(), _1));
+  crude_timer_.async_wait([self = shared_from_this()](auto ec) { self->crude_timer_handler(ec); });
 }
 
 void Server::crude_timer_handler(const ErrorCode &ec) {

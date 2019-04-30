@@ -12,6 +12,7 @@
 #include <asio.hpp>
 #include "chef_base/chef_snippet.hpp"
 #include "yet_rtmp/yet_rtmp_chunk_op.h"
+#include "yet_common/span.hpp"
 #include "yet.hpp"
 
 namespace yet {
@@ -38,7 +39,7 @@ class Group : public std::enable_shared_from_this<Group> {
 
   public:
     void on_rtmp_av_data(RtmpSessionBasePtr pub, BufferPtr msg, const RtmpHeader &h);
-    void on_rtmp_meta_data(RtmpSessionBasePtr pub, BufferPtr msg, uint8_t *meta_pos, size_t meta_size, AmfObjectItemMapPtr meta);
+    void on_rtmp_meta_data(RtmpSessionBasePtr pub, BufferPtr msg, nonstd::span<uint8_t> meta_info, AmfObjectItemMapPtr meta);
     void on_rtmp_session_close(RtmpSessionBasePtr session);
 
   private:

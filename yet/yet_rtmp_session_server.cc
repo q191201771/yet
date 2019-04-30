@@ -39,7 +39,7 @@ void RtmpSessionServer::do_read_c0c1() {
   asio::async_read(socket_, asio::buffer(read_buf_.write_pos(), RTMP_C0C1_LEN),
                    [this, self](const ErrorCode &ec, size_t len) {
                      SNIPPET_RTMP_SESSION_ENTER_CB;
-                     auto ret = handshake_.handle_c0c1(read_buf_.read_pos(), len);
+                     auto ret = handshake_.handle_c0c1({read_buf_.read_pos(), len});
                      SINPPET_RTMP_SESSION_ASSERT(ret, "invalid handshake c0c1.");
                      YET_LOG_INFO("[{}] ---->Handshake C0+C1", (void *)this);
                      do_write_s0s1();

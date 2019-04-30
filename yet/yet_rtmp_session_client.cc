@@ -51,7 +51,7 @@ void RtmpSessionClient::do_tcp_connect() {
   resolver_.async_resolve(peer_ip_, chef::strings_op::to_string(peer_port_),
                           [this, self](const ErrorCode &ec, asio::ip::tcp::resolver::results_type endpoints) {
                             SNIPPET_RTMP_SESSION_ENTER_CB;
-                            asio::async_connect(socket_, endpoints,  std::bind(&RtmpSessionClient::tcp_connect_handler, get_self(), _1, _2));
+                            asio::async_connect(socket_, endpoints,  [self](auto conn_ec, auto endpoint) { self->tcp_connect_handler(conn_ec, endpoint);} );
                           });
 }
 

@@ -43,7 +43,7 @@ void Group::add_rtmp_sub(RtmpSessionServerPtr sub) {
 }
 
 void Group::add_http_flv_sub(HttpFlvSubPtr sub) {
-  sub->set_close_cb(std::bind(&Group::on_http_flv_close, this, _1));
+  sub->set_close_cb([this](auto subPtr) { on_http_flv_close(subPtr); });
   http_flv_subs_.insert(sub);
 
   pull_rtmp_if_needed();
@@ -57,16 +57,16 @@ void Group::on_http_flv_close(HttpFlvSubPtr sub) {
   http_flv_subs_.erase(sub);
 }
 
-void Group::on_rtmp_meta_data(RtmpSessionBasePtr pub, BufferPtr msg, uint8_t *meta_pos, size_t meta_size, AmfObjectItemMapPtr meta) {
+void Group::on_rtmp_meta_data(RtmpSessionBasePtr pub, BufferPtr msg, nonstd::span<uint8_t> meta_info, AmfObjectItemMapPtr meta) {
   (void)pub; (void)msg; (void)meta;
 
   RtmpHeader h;
   h.csid = RTMP_CSID_AMF;
   h.timestamp = 0;
-  h.msg_len = meta_size;
+  h.msg_len = meta_info.size();
   h.msg_type_id = RTMP_MSG_TYPE_ID_DATA_MESSAGE_AMF0;
   h.msg_stream_id = RTMP_MSID;
-  rtmp_chunked_metadata_ = RtmpChunkOp::msg2chunks(meta_pos, meta_size, h, nullptr, RTMP_LOCAL_CHUNK_SIZE);
+  rtmp_chunked_metadata_ = RtmpChunkOp::msg2chunks(meta_info, h, nullptr, RTMP_LOCAL_CHUNK_SIZE);
   YET_LOG_DEBUG("cache rtmp meta data.");
 
   for (auto &sub : rtmp_subs_) {
@@ -77,7 +77,7 @@ void Group::on_rtmp_meta_data(RtmpSessionBasePtr pub, BufferPtr msg, uint8_t *me
     rtmp_push_->async_send(rtmp_chunked_metadata_);
   }
 
-  http_flv_metadata_ = HttpFlvPackOp::pack_tag(meta_pos, meta_size, FLV_TAG_HEADER_TYPE_SCRIPT_DATA, 0);
+  http_flv_metadata_ = HttpFlvPackOp::pack_tag(meta_info, FLV_TAG_HEADER_TYPE_SCRIPT_DATA, 0);
   YET_LOG_DEBUG("cache http flv meta data.");
 
   for (auto &sub : http_flv_subs_) {
@@ -212,11 +212,11 @@ void Group::on_rtmp_av_data(RtmpSessionBasePtr pub, BufferPtr msg, const RtmpHea
     }
 
     if ((h.msg_type_id == RTMP_MSG_TYPE_ID_AUDIO)) {
-      auto buf = HttpFlvPackOp::pack_tag(msg->read_pos(), msg->readable_size(), FLV_TAG_HEADER_TYPE_AUDIO, h.timestamp);
+      auto buf = HttpFlvPackOp::pack_tag({msg->read_pos(), msg->readable_size()}, FLV_TAG_HEADER_TYPE_AUDIO, h.timestamp);
       sub->async_send(buf);
       sub->set_has_sent_audio(true);
     } else {
-      auto buf = HttpFlvPackOp::pack_tag(msg->read_pos(), msg->readable_size(), FLV_TAG_HEADER_TYPE_VIDEO, h.timestamp);
+      auto buf = HttpFlvPackOp::pack_tag({msg->read_pos(), msg->readable_size()}, FLV_TAG_HEADER_TYPE_VIDEO, h.timestamp);
       sub->async_send(buf);
       sub->set_has_sent_video(true);
     }
@@ -243,7 +243,7 @@ void Group::cache_aac_header(BufferPtr msg, const RtmpHeader &h) {
     //YET_LOG_DEBUG("cache aac header.");
     rtmp_chunked_aac_header_ = RtmpChunkOp::msg2chunks(msg, h, nullptr, RTMP_LOCAL_CHUNK_SIZE);
 
-    http_flv_aac_header_ = HttpFlvPackOp::pack_tag(rp, msg->readable_size(), FLV_TAG_HEADER_TYPE_AUDIO, 0);
+    http_flv_aac_header_ = HttpFlvPackOp::pack_tag({rp, msg->readable_size()}, FLV_TAG_HEADER_TYPE_AUDIO, 0);
   }
 }
 
@@ -253,13 +253,13 @@ void Group::cache_avc_header(BufferPtr msg, const RtmpHeader &h) {
     //YET_LOG_DEBUG("cache avc header.");
     rtmp_chunked_avc_header_ = RtmpChunkOp::msg2chunks(msg, h, nullptr, RTMP_LOCAL_CHUNK_SIZE);
 
-    http_flv_avc_header_ = HttpFlvPackOp::pack_tag(rp, msg->readable_size(), FLV_TAG_HEADER_TYPE_VIDEO, 0);
+    http_flv_avc_header_ = HttpFlvPackOp::pack_tag({rp, msg->readable_size()}, FLV_TAG_HEADER_TYPE_VIDEO, 0);
   }
 }
 
 void Group::on_rtmp_pub_start(RtmpSessionServerPtr pub) {
-  pub->set_rtmp_av_data_cb(std::bind(&Group::on_rtmp_av_data, this, _1, _2, _3));
-  pub->set_rtmp_meta_data_cb(std::bind(&Group::on_rtmp_meta_data, this, _1, _2, _3, _4, _5));
+  pub->set_rtmp_av_data_cb([this](auto ...args) { on_rtmp_av_data(std::forward<decltype(args)>(args)...); });
+  pub->set_rtmp_meta_data_cb([this](auto ...args) { on_rtmp_meta_data(std::forward<decltype(args)>(args)...); });
   rtmp_pub_ = pub;
 
   auto len = RtmpPackOp::encode_user_control_stream_begin_reserve();
@@ -275,7 +275,7 @@ void Group::on_rtmp_pub_start(RtmpSessionServerPtr pub) {
     rtmp_push_ = RtmpSessionClient::create_push(io_ctx_);
     rtmp_push_->async_start(Config::instance()->rtmp_push_host(), Config::instance()->rtmp_push_port(), rtmp_pub_->app_name(),
                             rtmp_pub_->stream_name());
-    rtmp_push_->set_rtmp_session_close_cb(std::bind(&Group::on_rtmp_session_close, this, _1)); // for pub & sub & push & pull session
+    rtmp_push_->set_rtmp_session_close_cb([this](auto sessionPtr) { on_rtmp_session_close(sessionPtr); }); // for pub & sub & push & pull session
   }
 }
 
@@ -308,9 +308,9 @@ void Group::pull_rtmp_if_needed() {
   if (Config::instance()->pull_rtmp_if_stream_not_exist() && !has_in()) {
     rtmp_pull_ = RtmpSessionClient::create_pull(io_ctx_);
     rtmp_pull_->async_start(Config::instance()->rtmp_pull_host(), Config::instance()->rtmp_pull_port(), app_name_, stream_name_);
-    rtmp_pull_->set_rtmp_session_close_cb(std::bind(&Group::on_rtmp_session_close, this, _1));
-    rtmp_pull_->set_rtmp_meta_data_cb(std::bind(&Group::on_rtmp_meta_data, this, _1, _2, _3, _4, _5));
-    rtmp_pull_->set_rtmp_av_data_cb(std::bind(&Group::on_rtmp_av_data, this, _1, _2, _3));
+    rtmp_pull_->set_rtmp_session_close_cb([this](auto sessionPtr) { on_rtmp_session_close(sessionPtr); });
+    rtmp_pull_->set_rtmp_meta_data_cb([this](auto ...args) { on_rtmp_meta_data(std::forward<decltype(args)>(args)...); });;
+    rtmp_pull_->set_rtmp_av_data_cb([this](auto ...args) { on_rtmp_av_data(std::forward<decltype(args)>(args)...); });
   }
 }
 

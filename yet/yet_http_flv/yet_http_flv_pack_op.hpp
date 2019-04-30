@@ -9,6 +9,7 @@
 #include "chef_base/chef_be_le_op.hpp"
 #include "chef_base/chef_buffer.hpp"
 #include "yet_http_flv/yet_http_flv.hpp"
+#include "yet_common/span.hpp"
 #include <assert.h>
 
 namespace yet {
@@ -32,13 +33,13 @@ class HttpFlvPackOp {
       *buf = timestamp >> 24;
     }
 
-    static BufferPtr pack_tag(uint8_t *data, size_t data_size, uint8_t type, uint32_t timestamp) {
-      BufferPtr buf = std::make_shared<Buffer>(FLV_TAG_HEADER_LEN + data_size + FLV_PREV_TAG_LEN);
+    static BufferPtr pack_tag(nonstd::span<const uint8_t> data, uint8_t type, uint32_t timestamp) {
+      BufferPtr buf = std::make_shared<Buffer>(FLV_TAG_HEADER_LEN + data.size() + FLV_PREV_TAG_LEN);
       uint8_t *p = buf->read_pos();
-      pack_tag_header(p, type, data_size, timestamp);
-      memcpy(p + FLV_TAG_HEADER_LEN, data, data_size);
-      chef::be_le_op::write_be_ui32(p + FLV_TAG_HEADER_LEN + data_size, FLV_TAG_HEADER_LEN + data_size);
-      buf->seek_write_pos(FLV_TAG_HEADER_LEN + data_size + FLV_PREV_TAG_LEN);
+      pack_tag_header(p, type, data.size(), timestamp);
+      memcpy(p + FLV_TAG_HEADER_LEN, &data[0], data.size());
+      chef::be_le_op::write_be_ui32(p + FLV_TAG_HEADER_LEN + data.size(), FLV_TAG_HEADER_LEN + data.size());
+      buf->seek_write_pos(FLV_TAG_HEADER_LEN + data.size() + FLV_PREV_TAG_LEN);
       return buf;
     }
 };

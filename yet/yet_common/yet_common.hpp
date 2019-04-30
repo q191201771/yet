@@ -15,10 +15,5 @@ namespace yet {
 using Buffer = chef::buffer;
 using BufferPtr = std::shared_ptr<Buffer>;
 
-using std::placeholders::_1;
-using std::placeholders::_2;
-using std::placeholders::_3;
-using std::placeholders::_4;
-using std::placeholders::_5;
 
 }

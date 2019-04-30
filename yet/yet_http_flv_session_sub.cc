@@ -41,7 +41,7 @@ void HttpFlvSub::set_sub_cb(HttpFlvSubCb cb) { sub_cb_ = cb; }
 void HttpFlvSub::set_close_cb(HttpFlvSubEventCb cb) { close_cb_ = cb; }
 
 void HttpFlvSub::start() {
-  asio::async_read_until(socket_, request_buf_, "\r\n\r\n", std::bind(&HttpFlvSub::request_handler, shared_from_this(), _1, _2));
+  asio::async_read_until(socket_, request_buf_, "\r\n\r\n", [self = shared_from_this()](auto ec, auto len) { self->request_handler(ec, len); });
 }
 
 void HttpFlvSub::request_handler(const ErrorCode &ec, size_t len) {

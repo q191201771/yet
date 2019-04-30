@@ -25,7 +25,7 @@ void HttpFlvServer::do_accept() {
   acceptor_->async_accept([this](const ErrorCode &ec, asio::ip::tcp::socket socket) {
                           YET_LOG_ASSERT(!ec, "http flv server accept failed. ec:{}", ec.message());
                           auto pull = std::make_shared<HttpFlvSub>(std::move(socket));
-                          pull->set_sub_cb(std::bind(&HttpFlvServer::on_http_flv_request, this, _1, _2, _3, _4, _5));
+                          pull->set_sub_cb([this](auto ...args) { on_http_flv_request(std::forward<decltype(args)>(args)...); });
                           pull->start();
                           do_accept();
                         });
@@ -34,8 +34,8 @@ void HttpFlvServer::do_accept() {
 bool HttpFlvServer::start() {
   YET_LOG_INFO("start http flv server. {}:{}", listen_ip_, listen_port_);
   try {
-    acceptor_ = std::unique_ptr<asio::ip::tcp::acceptor>(new asio::ip::tcp::acceptor(io_ctx_,
-        asio::ip::tcp::endpoint(asio::ip::address_v4::from_string(listen_ip_), listen_port_)));
+    acceptor_ = std::make_unique<asio::ip::tcp::acceptor>(io_ctx_,
+        asio::ip::tcp::endpoint(asio::ip::address_v4::from_string(listen_ip_), listen_port_));
   } catch (const std::system_error &err) {
     YET_LOG_ERROR("http flv server listen failed. ip:{}, port:{}, ec:{}", listen_ip_, listen_port_, err.code().message());
     return false;
